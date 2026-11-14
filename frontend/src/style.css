@@ -94,3 +94,23 @@
 .gx-attrib{font-size:10.5px;line-height:1.55;color:#6e8791;margin:0;padding:0 4px}.gx-attrib a{color:var(--blue);display:inline-flex;align-items:center;gap:2px}
 @media(max-width:1000px){.gx-layout{grid-template-columns:1fr}.gx-map{height:58vh;min-height:340px}}
 @media(max-width:600px){.gx-layerbox{top:auto;bottom:26px;right:10px;left:auto}.gx-legend{display:none}.gx-switch{width:100%}.gx-switch button{flex:1}}
+
+
+/* Compact, date-first ASF catalogue */
+.catalog-results{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
+.catalog-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.catalog-top b{font:700 17px Manrope;color:var(--text)}
+.catalog-top p{font-size:11.5px;color:var(--muted);margin:3px 0 0}
+.catalog-top select{max-width:190px}
+.catalog-list{display:grid;gap:8px;max-height:460px;overflow:auto;padding-right:3px}
+.catalog-item{display:grid;grid-template-columns:minmax(150px,190px) minmax(0,1fr) auto;align-items:center;gap:14px;padding:12px 13px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
+.catalog-date span{display:block;font:700 13px Manrope;color:var(--text)}
+.catalog-date small{display:block;margin-top:4px;font-size:10px;color:var(--muted)}
+.catalog-main{min-width:0}
+.catalog-tags{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:7px}
+.catalog-tags span{font:10px 'DM Mono';color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:3px 7px}
+.catalog-tags .catalog-type{color:var(--teal);border-color:#267d7566;background:#16776b12}
+.catalog-main details summary{font-size:10px;color:var(--muted);cursor:pointer}
+.catalog-main details code{display:block;overflow-wrap:anywhere;white-space:normal;font:9px 'DM Mono';color:var(--muted);margin-top:5px}
+.catalog-action{white-space:nowrap;padding:9px 11px!important;font-size:11px!important}
+@media(max-width:680px){.catalog-item{grid-template-columns:1fr auto;gap:8px}.catalog-date{grid-column:1/-1}.catalog-main{grid-column:1}.catalog-action{grid-column:2;grid-row:2}.catalog-top{align-items:flex-start;flex-direction:column}}
