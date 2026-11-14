@@ -126,7 +126,14 @@ def stream_asf_preview(request: StreamRequest):
         "BETA": "NISAR_L2_GOFF_BETA_V1",
         "VALIDATED": "NISAR_L2_GOFF_V1",
     }
-    maturities = [request.maturity.upper()] if request.maturity else ["PROVISIONAL", "BETA", "VALIDATED"]
+    # UR granules live in the separate NISAR Urgent Response Level 2 collection,
+    # not in the normal GOFF maturity collections.
+    is_urgent_response = "_UR_GOFF_" in granule_id
+    if is_urgent_response:
+        maturity_to_collection["URGENT_RESPONSE"] = "NISAR_UR_L2"
+        maturities = ["URGENT_RESPONSE"]
+    else:
+        maturities = [request.maturity.upper()] if request.maturity else ["PROVISIONAL", "BETA", "VALIDATED"]
     # earthaccess exposes CMR readable_granule_name as the granule_name argument.
     target_id = granule_id.removesuffix(".h5")
     granules = []
