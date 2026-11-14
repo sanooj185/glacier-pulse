@@ -5,3 +5,4 @@ numpy==2.2.1
 pyproj==3.7.0
 python-multipart==0.0.20
 asf_search
+earthaccess>=0.15,<1
