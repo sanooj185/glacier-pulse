@@ -371,3 +371,29 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 .mi-simple-footer{display:flex;flex-wrap:wrap;gap:8px}
 .mi-simple-footer span{padding:8px 10px;border:1px solid #29445a;border-radius:8px;background:#0d2031;color:#91aabd;font:9px 'DM Mono'}
 @media(max-width:700px){.mi-simple-grid,.mi-quality-grid{grid-template-columns:1fr}.mi-simple-intro{align-items:flex-start;flex-direction:column}}
+
+
+/* Glacier Explorer — simple discovery-first layout */
+.gx-intro{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:23px 25px;border:1px solid #29465c;border-radius:15px;background:radial-gradient(ellipse at 85% 10%,#28506a 0,transparent 42%),linear-gradient(115deg,#10283b,#0b1b2b)}
+.gx-intro>div:first-child>span{font:9px 'DM Mono';letter-spacing:1.3px;color:#75dfd0}
+.gx-intro h2{margin:8px 0 6px;color:#f0f8ff;font:800 clamp(22px,2.5vw,30px) Manrope;letter-spacing:-.8px}
+.gx-intro p{margin:0;color:#a5bdce;font-size:12px;line-height:1.65}
+.gx-intro-mark{width:54px;height:54px;flex-shrink:0;display:grid;place-items:center;border:1px solid #3d7580;border-radius:16px;background:#163c49;color:#86eddd;box-shadow:0 0 30px #61e6d222}
+.gx-map-title{display:flex;flex-direction:column;gap:3px;margin-right:auto}
+.gx-map-title b{color:#eaf6ff;font:700 13px Manrope}
+.gx-map-title span{color:#8eaabd;font-size:10px}
+.gx-toolbar{gap:12px}
+.gx-empty{padding:25px 18px;background:radial-gradient(ellipse at 50% 0,#214c5730,transparent 65%),var(--panel)}
+.gx-empty h3{font:750 18px Manrope;color:#edf8ff}
+.gx-empty p{max-width:290px;margin:0 auto;color:#9db5c6}
+.gx-empty-hint{margin:16px auto 0;padding:9px 11px;max-width:280px;border:1px solid #294c54;border-radius:8px;background:#102b34;color:#8ddccc;font:9px 'DM Mono';line-height:1.6}
+.gx-profile{background:linear-gradient(145deg,#10283b,#0c1c2b)}
+.gx-profile h3{font-size:22px;letter-spacing:-.4px;color:#eff9ff}
+.gx-profile dl div{padding-bottom:9px}
+.gx-obs h4{font-size:14px;color:#e8f5ff;margin-bottom:8px}
+.gx-obslist button{padding:12px;border-radius:10px;transition:border-color .16s,background .16s}
+.gx-obslist button>span{display:flex;align-items:center;justify-content:space-between;gap:7px;flex-wrap:wrap}
+.gx-obslist button>span>b{font:700 13px Manrope;color:#eaf7ff}
+.gx-obslist .gx-id{font:9px 'DM Sans';color:#7fa2b5}
+.gx-status{font:10px 'DM Sans';letter-spacing:.1px}
+@media(max-width:600px){.gx-intro{padding:18px}.gx-intro-mark{width:44px;height:44px}.gx-toolbar{align-items:stretch}.gx-map-title{width:100%}}
