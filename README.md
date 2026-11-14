@@ -47,3 +47,26 @@ The preview displays georeferenced GOFF along-track/slant-range offsets and qual
 ## Hosting notes
 
 Render free web services can spin down after inactivity, so the first request after a quiet period may be slow. Large HDF5 uploads may exceed free-instance memory/request limits; the catalog search is the lighter live-data feature.
+
+## Glacier-aware map (Glacier Explorer)
+
+The **Glacier Explorer** page shows real glacier outlines from the Randolph Glacier Inventory (RGI), a name/ID
+search, clickable glacier profiles, NISAR GOFF observation footprints that truly intersect the selected glacier,
+and the grid extent of any GOFF granule loaded in the Radar Lab.
+
+Outlines are **not bundled**. Download RGI (NSIDC-0770 v7, or GLIMS RGI 6.0), then build the inventory file as
+described in `backend/data/README.md` and deploy `backend/data/glaciers.geojson` with the API. Until then the
+Explorer says so and draws no glaciers.
+
+New API routes: `GET /api/glaciers/status`, `/api/glaciers?west&south&east&north`, `/api/glaciers/search?q=`,
+`/api/glaciers/{id}`, `/api/glaciers/{id}/observations`, `POST /api/observations/glaciers`.
+
+How coverage is computed: footprints and outlines are intersected as polygons and areas are measured in an
+equal-area projection (EPSG:6933). "Full" means at least 99.99 % of the outline lies inside the catalogue footprint;
+"partial" means some but not all; products with no overlap are dropped. Proximity never counts as coverage.
+Catalogue footprints have straight edges between vertices while true radar edges are geodesic, so glaciers within
+5 km of a footprint edge are flagged as approximate. Catalogue coverage says nothing about whether valid,
+high-quality offset pixels exist over the glacier.
+
+Backend tests: `cd backend && pip install pytest httpx && python -m pytest tests`. The tests use synthetic
+squares as geometry fixtures to verify the spatial logic; they are not glacier data.

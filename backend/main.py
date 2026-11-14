@@ -4,8 +4,9 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import h5py, numpy as np, os, re, shutil, tempfile
 from pyproj import Transformer
+import glaciers
 
-app = FastAPI(title="Glacier Pulse API", version="0.2.0")
+app = FastAPI(title="Glacier Pulse API", version="0.3.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=False, allow_methods=["*"], allow_headers=["*"])
 ROOT = "science/LSAR/GOFF/grids/frequencyA/pixelOffsets/HH/"
 
@@ -87,17 +88,12 @@ def make_preview(f, filename, layer="layer1", max_dim=420):
 def health():
     return {"status":"ok", "service":"Glacier Pulse API"}
 
-@app.get("/api/asf/search")
-def asf_search_goff(west: float, south: float, east: float, north: float, start: str = None, end: str = None, maturity: str = None, max_results: int = 30):
-    if not (-180 <= west < east <= 180 and -90 <= south < north <= 90):
-        raise HTTPException(400, "Enter a valid bounding box: west < east and south < north.")
-    if max_results < 1 or max_results > 100:
-        raise HTTPException(400, "max_results must be between 1 and 100.")
+def _asf_goff_search(polygon: str, start=None, end=None, maturity=None, max_results: int = 30):
+    """Query ASF for NISAR GOFF products intersecting a WKT polygon (shared by the catalogue and glacier routes)."""
     try:
         import asf_search as asf
     except ImportError:
         raise HTTPException(503, "ASF search dependency is not installed.")
-    polygon = f"POLYGON(({west} {south},{east} {south},{east} {north},{west} {north},{west} {south}))"
     params = {"dataset":"NISAR", "processingLevel":"GOFF", "intersectsWith":polygon, "maxResults":max_results}
     if start: params["start"] = start
     if end: params["end"] = end
@@ -118,6 +114,109 @@ def asf_search_goff(west: float, south: float, east: float, north: float, start:
         return {"count":len(products), "query":params, "products":products, "source":"ASF DAAC"}
     except Exception as exc:
         raise HTTPException(502, f"ASF search failed: {exc}")
+
+@app.get("/api/asf/search")
+def asf_search_goff(west: float, south: float, east: float, north: float, start: str = None, end: str = None, maturity: str = None, max_results: int = 30):
+    if not (-180 <= west < east <= 180 and -90 <= south < north <= 90):
+        raise HTTPException(400, "Enter a valid bounding box: west < east and south < north.")
+    if max_results < 1 or max_results > 100:
+        raise HTTPException(400, "max_results must be between 1 and 100.")
+    polygon = f"POLYGON(({west} {south},{east} {south},{east} {north},{west} {north},{west} {south}))"
+    return _asf_goff_search(polygon, start, end, maturity, max_results)
+
+# ---------------------------------------------------------------------------
+# Glacier inventory (real outlines only; see glaciers.py and the build script)
+# ---------------------------------------------------------------------------
+def _inventory():
+    try:
+        return glaciers.get_inventory()
+    except glaciers.InventoryNotLoaded as exc:
+        raise HTTPException(503, str(exc))
+    except Exception as exc:
+        raise HTTPException(500, f"Glacier inventory could not be read: {type(exc).__name__}")
+
+class FootprintRequest(BaseModel):
+    geometry: dict
+    limit: int = 200
+
+@app.get("/api/glaciers/status")
+def glacier_status():
+    try:
+        return glaciers.get_inventory().status()
+    except glaciers.InventoryNotLoaded as exc:
+        return {"loaded": False, "glacierCount": 0, "message": str(exc)}
+
+@app.get("/api/glaciers/search")
+def glacier_search(q: str, limit: int = 20):
+    if not 1 <= limit <= 50:
+        raise HTTPException(400, "limit must be between 1 and 50.")
+    inv = _inventory()
+    return {"query": q, "results": inv.search(q, limit), "attribution": inv.attribution()}
+
+@app.get("/api/glaciers")
+def glacier_outlines(west: float, south: float, east: float, north: float, limit: int = 400, min_area_km2: float = 0.0, simplify: float = 0.0):
+    if not (-180 <= west < east <= 180 and -90 <= south < north <= 90):
+        raise HTTPException(400, "Enter a valid bounding box: west < east and south < north.")
+    if not 1 <= limit <= 2000 or min_area_km2 < 0 or not 0 <= simplify <= 0.05:
+        raise HTTPException(400, "Invalid limit, min_area_km2 or simplify value.")
+    inv = _inventory()
+    result = inv.in_bbox(west, south, east, north, limit, min_area_km2, simplify)
+    result["attribution"] = inv.attribution()
+    return result
+
+@app.get("/api/glaciers/{glacier_id}")
+def glacier_profile(glacier_id: str):
+    inv = _inventory()
+    feature = inv.get(glacier_id)
+    if not feature:
+        raise HTTPException(404, f"Glacier {glacier_id} is not in the installed inventory.")
+    return {"glacier": feature, "attribution": inv.attribution()}
+
+@app.get("/api/glaciers/{glacier_id}/observations")
+def glacier_observations(glacier_id: str, start: str = None, end: str = None, maturity: str = None, max_results: int = 50):
+    """NISAR GOFF products whose footprints truly intersect this glacier outline, with coverage."""
+    if not 1 <= max_results <= 100:
+        raise HTTPException(400, "max_results must be between 1 and 100.")
+    inv = _inventory()
+    geom = inv.geometry(glacier_id)
+    if geom is None:
+        raise HTTPException(404, f"Glacier {glacier_id} is not in the installed inventory.")
+    west, south, east, north = geom.bounds
+    # ASF narrows by the glacier's bounding box; exact coverage is computed here against the outline.
+    polygon = f"POLYGON(({west} {south},{east} {south},{east} {north},{west} {north},{west} {south}))"
+    catalogue = _asf_goff_search(polygon, start, end, maturity, max_results)
+    observations, dropped, skipped = [], 0, 0
+    for product in catalogue["products"]:
+        if not product.get("geometry"):
+            skipped += 1
+            continue
+        try:
+            footprint = glaciers.footprint_from_geojson(product["geometry"])
+            coverage = glaciers.GlacierInventory.coverage(geom, footprint)
+        except Exception:
+            skipped += 1
+            continue
+        if coverage["status"] == "none":
+            dropped += 1
+            continue
+        observations.append({**product, "coverage": coverage})
+    observations.sort(key=lambda p: p.get("startTime") or "", reverse=True)
+    return {"glacierId": glacier_id, "count": len(observations), "droppedNoCoverage": dropped, "skippedNoGeometry": skipped,
+            "observations": observations, "source": "ASF DAAC catalogue footprints",
+            "note": "Coverage compares the catalogue scene footprint with the glacier outline. It does not mean the GOFF raster has valid, high-quality pixels over the glacier."}
+
+@app.post("/api/observations/glaciers")
+def glaciers_in_footprint(request: FootprintRequest):
+    """Glaciers whose outlines truly intersect an observation footprint (GeoJSON Polygon/MultiPolygon)."""
+    if not 1 <= request.limit <= 1000:
+        raise HTTPException(400, "limit must be between 1 and 1000.")
+    inv = _inventory()
+    try:
+        footprint = glaciers.footprint_from_geojson(request.geometry)
+    except Exception as exc:
+        raise HTTPException(400, f"Invalid footprint geometry: {exc}")
+    found = inv.intersecting(footprint, request.limit)
+    return {"count": len(found), "glaciers": found, "attribution": inv.attribution()}
 
 @app.post("/api/asf/stream-preview")
 def stream_asf_preview(request: StreamRequest):
