@@ -121,18 +121,56 @@ def stream_asf_preview(request: StreamRequest):
         earthaccess.login(strategy="environment", persist=False)
     except Exception:
         raise HTTPException(401, "Earthdata authentication failed. Check the private Render environment variables.")
-    maturity_to_collection = {"PROVISIONAL": "NISAR_L2_GOFF_PROVISIONAL_V1", "BETA": "NISAR_L2_GOFF_BETA_V1", "VALIDATED": "NISAR_L2_GOFF_V1"}
+    maturity_to_collection = {
+        "PROVISIONAL": "NISAR_L2_GOFF_PROVISIONAL_V1",
+        "BETA": "NISAR_L2_GOFF_BETA_V1",
+        "VALIDATED": "NISAR_L2_GOFF_V1",
+    }
     maturities = [request.maturity.upper()] if request.maturity else ["PROVISIONAL", "BETA", "VALIDATED"]
+    # ASF's granuleName is a human-readable producer granule ID. CMR exposes
+    # this as readable_granule_name / producer_granule_id, not granule_name.
+    target_id = granule_id.removesuffix(".h5")
     granules = []
+    searched = []
     try:
         for maturity in maturities:
-            if maturity not in ("PROVISIONAL", "BETA", "VALIDATED"): continue
-            granules = earthaccess.search_data(short_name=maturity_to_collection[maturity], granule_name=f"{granule_id}*", cloud_hosted=True, count=1)
-            if granules: break
+            collection = maturity_to_collection.get(maturity)
+            if not collection:
+                continue
+            searched.append(collection)
+            # Try CMR's documented identifier fields. Some catalog records
+            # include the .h5 suffix and some do not.
+            for identifier in (target_id, target_id + ".h5"):
+                try:
+                    granules = earthaccess.search_data(
+                        short_name=collection,
+                        readable_granule_name=identifier,
+                        cloud_hosted=True,
+                        count=5,
+                    )
+                except Exception:
+                    granules = []
+                if not granules:
+                    try:
+                        granules = earthaccess.search_data(
+                            short_name=collection,
+                            producer_granule_id=identifier,
+                            cloud_hosted=True,
+                            count=5,
+                        )
+                    except Exception:
+                        granules = []
+                if granules:
+                    break
+            if granules:
+                break
     except Exception:
         raise HTTPException(502, "Earthdata catalog search failed while resolving this ASF granule.")
     if not granules:
-        raise HTTPException(404, "Granule not found in Earthdata GOFF collections. Try another ASF result.")
+        raise HTTPException(
+            404,
+            f"Granule {granule_id} was not found in Earthdata CMR. Searched collections: {', '.join(searched)}. The ASF result ID may differ from the CMR producer granule ID.",
+        )
     remote_files = []
     try:
         remote_files = earthaccess.open(granules, access="https", open_kwargs={"block_size":8*1024*1024})
