@@ -6,3 +6,4 @@ pyproj==3.7.0
 python-multipart==0.0.20
 asf_search
 earthaccess>=0.15,<1
+shapely>=2.0,<3
