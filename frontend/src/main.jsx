@@ -11,7 +11,7 @@ const descriptions={'Glacier Explorer':'Discover glacier locations, boundaries a
 function describeGranule(p){
  const id=p.granuleId||p.fileName||'';
  const stamps=[...id.matchAll(/(20\d{6})T(\d{6})/g)].map(m=>m[1]+'T'+m[2]);
- const dates=[...new Set(stamps.map(s=>s.slice(0,8)))];
+ const dates=[...new Set(stamps.slice(0,2).map(s=>s.slice(0,8)))];
  const type=/_UR_GOFF_/.test(id)?'Urgent response GOFF':/_PR_GOFF_/.test(id)?'Precision GOFF':id.match(/NISAR_L2_([^_]+)_([^_]+)/)?.slice(1).join(' ')||'NISAR product';
  const level=id.match(/NISAR_(L\d)_/)?.[1]||'L2';
  const track=id.match(/GOFF_(\d{3})_(\d{3})_/)?.slice(1).join(' / ');
