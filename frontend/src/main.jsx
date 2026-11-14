@@ -164,6 +164,31 @@ function Heatmap({data,layer}){
 }
 function quant(a,q){if(!a.length)return 1;const s=[...a].sort((x,y)=>x-y);return s[Math.min(s.length-1,Math.floor((s.length-1)*q))]}
 function Stat({label,value,sub}){return <div className="stat"><span>{label}</span><b title={value}>{value}</b><small>{sub}</small></div>}
+function AIInterpreter({data}){
+ const [question,setQuestion]=useState('');
+ const [answer,setAnswer]=useState(null);
+ const m=data?.metadata||{};
+ const prompts=['What does along-track offset mean?','How reliable is this observation?','What is the time interval?','Does this prove the glacier is moving?'];
+ function explain(q){
+  const lower=q.toLowerCase(),ref=m.referenceStart,sec=m.secondaryStart;
+  const interval=ref&&sec?Math.round(Math.abs(new Date(sec)-new Date(ref))/86400000):null;
+  const valid=m.previewValidPercent;
+  let heading='How to read this observation',body='';
+  if(!data) body='Load a GOFF observation in NISAR Radar Lab first. I can then explain its acquisition dates, offset layers and available quality indicators. No observation values are available in this workspace yet.';
+  else if(lower.includes('along')||lower.includes('slant')||lower.includes('offset')){heading='Radar-coordinate offsets';body='Along-track and slant-range offsets describe estimated image displacement in the radar acquisition geometry. They are not automatically east-west/north-south ground motion and are not glacier velocity. Converting them to ground-motion components requires a validated geometry transformation and careful quality masking.';}
+  else if(lower.includes('reliable')||lower.includes('quality')||lower.includes('confidence')){heading='Quality is part of the result';body='Use correlation peak, signal-to-noise ratio, valid-data masks and uncertainty layers together. A high finite-pixel percentage alone does not prove that offsets are accurate. '+(valid!=null?'This preview reports '+valid+'% finite offset pixels.':'A finite-pixel coverage percentage is not available in this preview.')+' Inspect spatial patterns and reject low-quality or high-uncertainty pixels before drawing conclusions.';}
+  else if(lower.includes('interval')||lower.includes('date')||lower.includes('time')){heading='The acquisition interval';body='The reference acquisition is '+(ref||'not available')+' and the secondary acquisition is '+(sec||'not available')+'. '+(interval!==null?'They are '+interval+' days apart.':'The interval cannot be calculated from the available metadata.')+' This is the comparison interval for this GOFF product, not a repeat measurement series.';}
+  else if(lower.includes('prove')||lower.includes('moving')||lower.includes('velocity')||lower.includes('speed')){heading='What this does — and does not — prove';body='No. A GOFF offset preview alone does not prove glacier flow speed, retreat, melt or mass loss. It provides radar-coordinate image offsets. A defensible glacier-motion result needs a confirmed glacier intersection, geometry conversion, acquisition interval, uncertainty assessment and independent validation.';}
+  else body='I can explain the loaded product, acquisition interval, radar-coordinate offsets and quality indicators. Try one of the suggested questions. I will distinguish metadata and measurements from interpretation, and I will not infer glacier change from an unverified footprint.';
+  setAnswer({heading,body});
+ }
+ return <div className="ai-page"><div className="ai-hero"><div className="aiicon"><Sparkles size={23}/></div><div><span className="eyebrowline"/> EVIDENCE-GROUNDED EXPLAINER<h2>Ask the signal. Not the hype.</h2><p>Plain-language help for NISAR observations, with measured values kept separate from scientific interpretation.</p></div></div>
+ <div className="ai-context"><div><small>WORKSPACE EVIDENCE</small><b>{data?'GOFF observation loaded':'No observation loaded'}</b></div><div><small>REFERENCE DATE</small><b>{m.referenceStart?.slice(0,10)||'—'}</b></div><div><small>SECONDARY DATE</small><b>{m.secondaryStart?.slice(0,10)||'—'}</b></div><div><small>FINITE PREVIEW</small><b>{m.previewValidPercent!=null?m.previewValidPercent+'%':'—'}</b></div></div>
+ <div className="ai-ask"><label htmlFor="gp-question">What would you like to understand?</label><div className="askrow"><input id="gp-question" value={question} onChange={e=>setQuestion(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&question.trim())explain(question.trim())}} placeholder="Ask about offsets, quality, dates or glacier motion…"/><button className="primary" disabled={!question.trim()} onClick={()=>explain(question.trim())}>Explain <ArrowUpRight size={15}/></button></div><div className="ai-prompts">{prompts.map(p=><button key={p} onClick={()=>{setQuestion(p);explain(p)}}>{p}</button>)}</div></div>
+ {answer&&<div className="ai-answer"><div className="ai-answer-label"><Sparkles size={15}/> EXPLANATION <span>Based on available workspace context</span></div><h3>{answer.heading}</h3><p>{answer.body}</p></div>}
+ <div className="ai-guardrail"><ShieldCheck size={18}/><div><b>Scientific guardrails</b><p>This first version uses transparent, rule-based explanations, not a connected generative AI model. It does not invent measurements or claim glacier coverage. A generative assistant can be connected later with retrieval restricted to verified product metadata and processing outputs.</p></div></div></div>
+}
+
 function TimeMachine({data}){
  const m=data?.metadata||{},ref=m.referenceStart,sec=m.secondaryStart;
  const fmt=v=>v?new Date(v).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}):'Date unavailable';
