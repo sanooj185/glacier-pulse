@@ -114,3 +114,30 @@
 .catalog-main details code{display:block;overflow-wrap:anywhere;white-space:normal;font:9px 'DM Mono';color:var(--muted);margin-top:5px}
 .catalog-action{white-space:nowrap;padding:9px 11px!important;font-size:11px!important}
 @media(max-width:680px){.catalog-item{grid-template-columns:1fr auto;gap:8px}.catalog-date{grid-column:1/-1}.catalog-main{grid-column:1}.catalog-action{grid-column:2;grid-row:2}.catalog-top{align-items:flex-start;flex-direction:column}}
+
+
+/* Glacier Pulse — observation timeline visual refresh */
+.catalog-results{position:relative;margin-top:22px;padding:20px 0 0;border-top:1px solid #28414c}
+.catalog-top{align-items:center;margin-bottom:16px}
+.catalog-top b{font:800 19px Manrope;letter-spacing:-.45px;color:#f0f7f7}
+.catalog-top b:before{content:"";display:inline-block;width:7px;height:7px;margin:0 9px 2px 0;border-radius:50%;background:#63d5bf;box-shadow:0 0 12px #63d5bf}
+.catalog-top p{font-size:11px;letter-spacing:.12px}
+.catalog-top select{border:1px solid #31515a;background:#102630;color:#cce0e2;border-radius:9px;padding:9px 12px}
+.catalog-list{gap:10px;max-height:520px;padding:2px 4px 4px 2px}
+.catalog-item{position:relative;overflow:hidden;grid-template-columns:170px minmax(0,1fr) auto;gap:16px;padding:15px 16px;border:1px solid #29434d;border-radius:13px;background:linear-gradient(112deg,#102630 0%,#0d1e28 58%,#10252c 100%);box-shadow:0 5px 18px #00000018;transition:border-color .18s ease,transform .18s ease,box-shadow .18s ease}
+.catalog-item:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,#72e4ca,#368d99);opacity:.85}
+.catalog-item:hover{transform:translateY(-2px);border-color:#4c8e8b;box-shadow:0 9px 24px #00000030}
+.catalog-date{padding-left:4px}
+.catalog-date span{font:800 14px Manrope;letter-spacing:-.2px;color:#edf8f6;line-height:1.35}
+.catalog-date small{display:inline-flex;margin-top:7px;border:1px solid #31524f;border-radius:20px;padding:3px 8px;color:#8fd8c8;background:#15342f;font:9px 'DM Mono';letter-spacing:.35px}
+.catalog-tags{gap:7px;margin-bottom:9px}
+.catalog-tags span{font:9px 'DM Mono';letter-spacing:.25px;color:#a9bec5;border:1px solid #2d4650;background:#132a34;padding:4px 8px}
+.catalog-tags .catalog-type{color:#91e2d0;border-color:#34796e;background:#123b36}
+.catalog-main details summary{font-size:10px;color:#819ba4;transition:color .15s}
+.catalog-main details summary:hover{color:#a9ded4}
+.catalog-main details code{padding:7px 9px;background:#091820;border:1px solid #233a43;border-radius:7px;color:#91aab2;line-height:1.5}
+.catalog-action{min-width:112px;border-radius:9px!important;background:linear-gradient(135deg,#2c9b8b,#236f78)!important;box-shadow:0 4px 14px #1e8b7b33;font-weight:700!important;letter-spacing:.1px}
+.catalog-action:hover{filter:brightness(1.12);transform:translateY(-1px)}
+.catalog-action:disabled{opacity:.55;filter:grayscale(.4)}
+.catalog-list::-webkit-scrollbar{width:6px}.catalog-list::-webkit-scrollbar-thumb{background:#31515a;border-radius:9px}
+@media(max-width:680px){.catalog-item{grid-template-columns:1fr auto;padding:13px}.catalog-date{grid-column:1/-1}.catalog-main{grid-column:1}.catalog-action{grid-column:2;grid-row:2;min-width:96px}.catalog-top{gap:10px}}
