@@ -12,12 +12,13 @@ function RadarLab({data,layer,setLayer,uploadFile,setData,busy,err}){const[drag,
 function SearchRegionMap({bbox,setBbox}){
  const host=useRef(null),mapRef=useRef(null),shape=useRef(null),drag=useRef(null);
  const [selection,setSelection]=useState('point');
+ const selectionRef=useRef('point');
  const [message,setMessage]=useState('Click the map to search around a point, or drag to draw a rectangle.');
  useEffect(()=>{
   if(!host.current||mapRef.current)return;
-  const map=L.map(host.current,{scrollWheelZoom:true,dragging:selection==='point'}).setView([36.6,88.2],5);
+  const map=L.map(host.current,{scrollWheelZoom:true,dragging:true}).setView([36.6,88.2],5);
   mapRef.current=map;
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:18,attribution:'© OpenStreetMap contributors © CARTO'}).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap contributors'}).addTo(map);
   const update=(bounds,label)=>{
    const sw=bounds.getSouthWest(),ne=bounds.getNorthEast();
    const next={west:sw.lng.toFixed(4),south:sw.lat.toFixed(4),east:ne.lng.toFixed(4),north:ne.lat.toFixed(4)};
@@ -26,13 +27,18 @@ function SearchRegionMap({bbox,setBbox}){
    shape.current=L.rectangle(bounds,{color:'#087e79',weight:2,fillColor:'#20b9a5',fillOpacity:.13}).addTo(map);
   };
   map.on('click',e=>{
-   if(selection!=='point')return;
+   if(selectionRef.current!=='point')return;
    const d=.25,b=L.latLngBounds([e.latlng.lat-d,e.latlng.lng-d],[e.latlng.lat+d,e.latlng.lng+d]);
    update(b,'Point selected · approx. 50 km search window');
   });
-  map.on('mousedown',e=>{if(selection==='rectangle')drag.current=e.latlng});
-  map.on('mouseup',e=>{if(selection==='rectangle'&&drag.current){const b=L.latLngBounds(drag.current,e.latlng);drag.current=null;if(b.getNorthEast().distanceTo(b.getSouthWest())>1000)update(b,'Rectangle selected');}});
+  map.on('mousedown',e=>{if(selectionRef.current==='rectangle'){map.dragging.disable();drag.current=e.latlng}});
+  map.on('mouseup',e=>{if(selectionRef.current==='rectangle'&&drag.current){const b=L.latLngBounds(drag.current,e.latlng);drag.current=null;if(b.getNorthEast().distanceTo(b.getSouthWest())>1000)update(b,'Rectangle selected');}});
   return ()=>{map.remove();mapRef.current=null};
+ },[]);
+ useEffect(()=>{
+  selectionRef.current=selection;
+  const map=mapRef.current;if(!map)return;
+  if(selection==='point')map.dragging.enable();else map.dragging.disable();
  },[selection]);
  useEffect(()=>{
   const map=mapRef.current;if(!map)return;
@@ -82,7 +88,7 @@ function GeoMap({data,layer}){
  useEffect(()=>{
   const map=mapRef.current;if(!map||!raster)return;
   if(overlayRef.current){map.removeLayer(overlayRef.current);overlayRef.current=null}
-  const url=base==='labels'?'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png':'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+  const url=base==='labels'?'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png':'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
   if(map._gpBase)map.removeLayer(map._gpBase);
   map._gpBase=L.tileLayer(url,{maxZoom:19,attribution:base==='labels'?'© OpenStreetMap contributors © CARTO':'Tiles © Esri'}).addTo(map);
   overlayRef.current=L.imageOverlay(raster.url,raster.bounds,{opacity,interactive:false}).addTo(map);
