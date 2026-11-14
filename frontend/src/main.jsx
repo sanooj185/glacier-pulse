@@ -30,9 +30,11 @@ function GeoMap({data,layer}){
    img.data[i]=c[0];img.data[i+1]=c[1];img.data[i+2]=c[2];img.data[i+3]=255;
   }
   ctx.putImageData(img,0,0);
-  const lat=data.latitude.flat().filter(Number.isFinite),lon=data.longitude.flat().filter(Number.isFinite);
-  if(!lat.length||!lon.length)return null;
-  return {url:canvas.toDataURL('image/png'),bounds:[[Math.min(...lat),Math.min(...lon)],[Math.max(...lat),Math.max(...lon)]],center:[(Math.min(...lat)+Math.max(...lat))/2,(Math.min(...lon)+Math.max(...lon))/2],lo,hi};
+  let minLat=Infinity,maxLat=-Infinity,minLon=Infinity,maxLon=-Infinity;
+  for(const row of data.latitude)for(const v of row)if(Number.isFinite(v)){minLat=Math.min(minLat,v);maxLat=Math.max(maxLat,v)}
+  for(const row of data.longitude)for(const v of row)if(Number.isFinite(v)){minLon=Math.min(minLon,v);maxLon=Math.max(maxLon,v)}
+  if(!Number.isFinite(minLat)||!Number.isFinite(minLon))return null;
+  return {url:canvas.toDataURL('image/png'),bounds:[[minLat,minLon],[maxLat,maxLon]],center:[(minLat+maxLat)/2,(minLon+maxLon)/2],lo,hi};
  },[data,layer]);
  useEffect(()=>{
   if(!host.current||mapRef.current)return;
