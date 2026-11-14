@@ -37,3 +37,13 @@
 .raster-detail-title{display:flex;justify-content:space-between;align-items:center;margin:18px 2px 8px;color:#dbe8e8;font-size:12px}
 .raster-detail-title span{color:#8198a2;font-size:10px}
 @media(max-width:700px){.geo-head{align-items:flex-start;flex-direction:column}.geo-map{height:330px}.geo-controls{align-items:flex-start;flex-direction:column}.base-switch{align-self:flex-start}}
+
+/* Map-first ASF region discovery */
+.search-map-panel{margin-top:15px;border:1px solid var(--line,#d7e0df);border-radius:9px;overflow:hidden;background:#f5f8f6}
+.search-map-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px}
+.search-map-head b{font-size:13px;color:#193b40}
+.search-map-head p{font-size:10px;color:#63787b;margin:4px 0 0}
+.search-region-map{height:300px;width:100%;background:#e8eeea}
+.search-region-map .leaflet-container{height:100%;width:100%;font-family:inherit}
+.search-map-message{padding:9px 13px;border-top:1px solid #d9e2df;color:#526d70;background:#fbfcfb;font-size:10px;line-height:1.5}
+@media(max-width:650px){.search-map-head{align-items:flex-start;flex-direction:column}.search-region-map{height:250px}}
