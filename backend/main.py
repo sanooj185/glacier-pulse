@@ -127,7 +127,7 @@ def stream_asf_preview(request: StreamRequest):
     try:
         for maturity in maturities:
             if maturity not in ("PROVISIONAL", "BETA", "VALIDATED"): continue
-            granules = earthaccess.search_data(short_name=f"NISAR_L2_GOFF_{maturity}_V1", granule_name=granule_id, cloud_hosted=True, count=1)
+            granules = earthaccess.search_data(short_name=maturity_to_collection[maturity], granule_name=f"{granule_id}*", cloud_hosted=True, count=1)
             if granules: break
     except Exception:
         raise HTTPException(502, "Earthdata catalog search failed while resolving this ASF granule.")
