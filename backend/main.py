@@ -107,7 +107,7 @@ def asf_search_goff(west: float, south: float, east: float, north: float, start:
 def stream_asf_preview(request: StreamRequest):
     """Stream the selected GOFF HDF5 product over authenticated HTTPS; do not save the full granule."""
     granule_id = request.granuleId.strip()
-    if not re.fullmatch(r"NISAR_L2_(?:PR|UR)_GOFF_[A-Z0-9_]+(?:\\.h5)?", granule_id):
+    if not re.fullmatch(r"NISAR_L2_(?:PR|UR)_GOFF_[A-Z0-9_]+(?:\.h5)?", granule_id):
         raise HTTPException(400, "Select a valid NISAR L2 GOFF granule from ASF.")
     if request.layer not in ("layer1", "layer2", "layer3") or not 64 <= request.maxDim <= 600:
         raise HTTPException(400, "Invalid layer or preview dimensions.")
@@ -121,7 +121,8 @@ def stream_asf_preview(request: StreamRequest):
         earthaccess.login(strategy="environment", persist=False)
     except Exception:
         raise HTTPException(401, "Earthdata authentication failed. Check the private Render environment variables.")
-    maturity_to_collection = {"PROVISIONAL": "NISAR_L2_GOFF_PROVISIONAL_V1", "BETA": "NISAR_L2_GOFF_BETA_V1", "VALIDATED": "NISAR_L2_GOFF_V1"}\n    maturities = [request.maturity.upper()] if request.maturity else ["PROVISIONAL", "BETA", "VALIDATED"]
+    maturity_to_collection = {"PROVISIONAL": "NISAR_L2_GOFF_PROVISIONAL_V1", "BETA": "NISAR_L2_GOFF_BETA_V1", "VALIDATED": "NISAR_L2_GOFF_V1"}
+    maturities = [request.maturity.upper()] if request.maturity else ["PROVISIONAL", "BETA", "VALIDATED"]
     granules = []
     try:
         for maturity in maturities:
