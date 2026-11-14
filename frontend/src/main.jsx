@@ -10,12 +10,12 @@ return <div className="app"><aside className="sidebar"><div className="brand"><d
 const descriptions={'Glacier Explorer':'Discover glacier locations, boundaries and available satellite observations.','Time Machine':'Compare observation dates and explore how the evidence changes over time.','Movement Intelligence':'Understand displacement products, uncertainty and the limits of interpretation.','NISAR Radar Lab':'Load a GOFF granule and preview its georeferenced radar offset and quality layers.','AI Interpreter':'Translate satellite observations into clear, evidence-grounded explanations.','Research & Reports':'Review data sources, processing notes and exportable research summaries.'};const moduleDesc={'Glacier Explorer':'Browse glacier geography and available observations.','Time Machine':'Compare dates and explore observation history.','Movement Intelligence':'Interpret displacement and measurement quality.','NISAR Radar Lab':'Inspect real NISAR GOFF data products.','AI Interpreter':'Ask questions in clear scientific language.','Research & Reports':'Keep methods, sources and findings together.'};
 function describeGranule(p){
  const id=p.granuleId||p.fileName||'';
- const stamps=[...id.matchAll(/(20\\d{6})T(\\d{6})/g)].map(m=>m[1]+'T'+m[2]);
+ const stamps=[...id.matchAll(/(20\d{6})T(\d{6})/g)].map(m=>m[1]+'T'+m[2]);
  const dates=[...new Set(stamps.map(s=>s.slice(0,8)))];
  const type=/_UR_GOFF_/.test(id)?'Urgent response GOFF':/_PR_GOFF_/.test(id)?'Precision GOFF':id.match(/NISAR_L2_([^_]+)_([^_]+)/)?.slice(1).join(' ')||'NISAR product';
- const level=id.match(/NISAR_(L\\d)_/)?.[1]||'L2';
- const track=id.match(/GOFF_(\\d{3})_(\\d{3})_/)?.slice(1).join(' / ');
- const orbit=id.match(/GOFF_\\d{3}_\\d{3}_([A-Z])_(\\d{3})_/) ;
+ const level=id.match(/NISAR_(L\d)_/)?.[1]||'L2';
+ const track=id.match(/GOFF_(\d{3})_(\d{3})_/)?.slice(1).join(' / ');
+ const orbit=id.match(/GOFF_\d{3}_\d{3}_([A-Z])_(\d{3})_/) ;
  const primary=stamps[0]||p.startTime||'';
  const pretty=s=>s?new Date(s.length===15? s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8)+'T'+s.slice(9,11)+':'+s.slice(11,13)+':'+s.slice(13,15)+'Z':s).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}):'Date unavailable';
  return {id,type,level,dates:dates.map(d=>pretty(d+'T000000')),sortDate:primary,track,orbit:orbit?.[1],path:orbit?.[2],dateLabel:dates.length>1?dates.map(d=>pretty(d+'T000000')).join(' → '):pretty(primary),maturity:p.dataMaturity||'Maturity not listed'};
