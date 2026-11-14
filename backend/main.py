@@ -127,8 +127,7 @@ def stream_asf_preview(request: StreamRequest):
         "VALIDATED": "NISAR_L2_GOFF_V1",
     }
     maturities = [request.maturity.upper()] if request.maturity else ["PROVISIONAL", "BETA", "VALIDATED"]
-    # ASF's granuleName is a human-readable producer granule ID. CMR exposes
-    # this as readable_granule_name / producer_granule_id, not granule_name.
+    # earthaccess exposes CMR readable_granule_name as the granule_name argument.
     target_id = granule_id.removesuffix(".h5")
     granules = []
     searched = []
@@ -138,38 +137,23 @@ def stream_asf_preview(request: StreamRequest):
             if not collection:
                 continue
             searched.append(collection)
-            # Try CMR's documented identifier fields. Some catalog records
-            # include the .h5 suffix and some do not.
             for identifier in (target_id, target_id + ".h5"):
-                try:
-                    granules = earthaccess.search_data(
-                        short_name=collection,
-                        readable_granule_name=identifier,
-                        cloud_hosted=True,
-                        count=5,
-                    )
-                except Exception:
-                    granules = []
-                if not granules:
-                    try:
-                        granules = earthaccess.search_data(
-                            short_name=collection,
-                            producer_granule_id=identifier,
-                            cloud_hosted=True,
-                            count=5,
-                        )
-                    except Exception:
-                        granules = []
+                granules = earthaccess.search_data(
+                    short_name=collection,
+                    granule_name=identifier,
+                    cloud_hosted=True,
+                    count=5,
+                )
                 if granules:
                     break
             if granules:
                 break
-    except Exception:
-        raise HTTPException(502, "Earthdata catalog search failed while resolving this ASF granule.")
+    except Exception as exc:
+        raise HTTPException(502, f"Earthdata catalog search failed: {type(exc).__name__}. Check API logs.")
     if not granules:
         raise HTTPException(
             404,
-            f"Granule {granule_id} was not found in Earthdata CMR. Searched collections: {', '.join(searched)}. The ASF result ID may differ from the CMR producer granule ID.",
+            f"Granule {granule_id} was not found in Earthdata CMR. Searched collections: {', '.join(searched)}. Confirm the ASF ID matches the CMR granule ID.",
         )
     remote_files = []
     try:
