@@ -164,14 +164,14 @@ def stream_asf_preview(request: StreamRequest):
         )
     remote_files = []
     try:
-        remote_files = earthaccess.open(granules, access="https", open_kwargs={"block_size":8*1024*1024})
+        remote_files = earthaccess.open(granules, open_kwargs={"block_size":8*1024*1024})
         if not remote_files: raise RuntimeError("Earthdata returned no readable HTTPS stream.")
         with h5py.File(remote_files[0], "r") as hdf:
             return JSONResponse(make_preview(hdf, granule_id, request.layer, request.maxDim))
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(502, f"Could not stream this GOFF granule: {type(exc).__name__}. Check API logs.")
+        raise HTTPException(502, f"Could not stream this GOFF granule: {type(exc).__name__}: {str(exc)[:240]}")
     finally:
         for remote_file in remote_files:
             try: remote_file.close()
