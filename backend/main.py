@@ -26,25 +26,39 @@ def make_preview(f, filename, layer="layer1", max_dim=420):
     if layer not in ("layer1", "layer2", "layer3") or not 64 <= max_dim <= 600:
         raise HTTPException(400, "Invalid layer or preview dimensions.")
     lp = ROOT + layer + "/"
-    required = [ROOT+"validDataMask", lp+"alongTrackOffset", lp+"slantRangeOffset", lp+"correlationSurfacePeak", lp+"snr", lp+"xCoordinates", lp+"yCoordinates", lp+"projection"]
+    mask_path = "science/LSAR/GOFF/grids/frequencyA/pixelOffsets/mask"
+    legacy_mask_path = ROOT + "validDataMask"
+    required = [lp+"alongTrackOffset", lp+"slantRangeOffset", lp+"correlationSurfacePeak", lp+"xCoordinates", lp+"yCoordinates", lp+"projection"]
     missing = [p for p in required if p not in f]
     if missing:
-        raise HTTPException(422, "Missing expected GOFF datasets: " + ", ".join(missing))
-    mask_ds = f[ROOT+"validDataMask"]
-    height, width = mask_ds.shape
+        # Return a compact HDF5 inventory to diagnose product-version differences.
+        inventory = []
+        def collect(name, obj):
+            if isinstance(obj, h5py.Dataset) and any(token in name for token in ("pixelOffsets", "xCoordinates", "yCoordinates", "snr", "projection", "mask")):
+                inventory.append(name)
+        f.visititems(collect)
+        raise HTTPException(422, "GOFF structure differs from expected layout. Missing: " + ", ".join(missing) + ". Available relevant datasets: " + ", ".join(inventory[:45]))
+    along_ds = f[lp+"alongTrackOffset"]
+    height, width = along_ds.shape[-2:]
     step = max(1, int(np.ceil(max(height, width) / max_dim)))
-    mask = mask_ds[::step, ::step]
-    along = f[lp+"alongTrackOffset"][::step, ::step]
+    along = along_ds[::step, ::step]
     slant = f[lp+"slantRangeOffset"][::step, ::step]
     corr = f[lp+"correlationSurfacePeak"][::step, ::step]
-    snr = f[lp+"snr"][::step, ::step]
+    snr = f[lp+"snr"][::step, ::step] if lp+"snr" in f else np.full(along.shape, np.nan)
     x, y = f[lp+"xCoordinates"][::step], f[lp+"yCoordinates"][::step]
+    # Standard GOFF places a product-level bit mask at pixelOffsets/mask.
+    # Older/pre-release granules may instead expose validDataMask under HH.
+    # Do not interpret the standard bit mask as the legacy 0/1/2/3 mask;
+    # finite data and HDF5 fill values determine preview validity here.
+    mask_valid = None
+    if legacy_mask_path in f:
+        mask_valid = f[legacy_mask_path][::step, ::step] == 3
     try: epsg = int(f[lp+"projection"].attrs.get("epsg_code", 32645))
     except (TypeError, ValueError): epsg = 32645
     xx, yy = np.meshgrid(x, y)
     transformer = Transformer.from_crs(f"EPSG:{epsg}", "EPSG:4326", always_xy=True)
     lon, lat = transformer.transform(xx, yy)
-    valid = (mask == 3) & np.isfinite(along) & np.isfinite(slant) & np.isfinite(corr) & np.isfinite(snr)
+    valid = np.isfinite(along) & np.isfinite(slant) & np.isfinite(corr)\n    if mask_valid is not None:\n        valid &= mask_valid
     def clean(a):
         z = np.asarray(a, dtype=float).copy()
         z[~valid] = np.nan
@@ -59,7 +73,7 @@ def make_preview(f, filename, layer="layer1", max_dim=420):
         "lookDirection": attr_text(f, ident, "lookDirection"),
         "epsg": epsg, "rows": int(height), "cols": int(width),
         "previewRows": int(len(y)), "previewCols": int(len(x)), "downsampleStep": int(step),
-        "maskValidPercent": round(100 * float(np.count_nonzero(mask == 3)) / mask.size, 2),
+        "maskSource": "legacy validDataMask (value 3)" if mask_valid is not None else ("standard pixelOffsets/mask present; not decoded in this preview" if mask_path in f else "no mask dataset found"),
         "previewValidPercent": round(100 * float(valid.sum()) / valid.size, 2),
         "offsetUnits": attr_text(f, lp+"alongTrackOffset", "units", "m"),
         "accessMethod": "Earthdata-authenticated HTTPS streaming"
