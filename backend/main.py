@@ -58,7 +58,9 @@ def make_preview(f, filename, layer="layer1", max_dim=420):
     xx, yy = np.meshgrid(x, y)
     transformer = Transformer.from_crs(f"EPSG:{epsg}", "EPSG:4326", always_xy=True)
     lon, lat = transformer.transform(xx, yy)
-    valid = np.isfinite(along) & np.isfinite(slant) & np.isfinite(corr)\n    if mask_valid is not None:\n        valid &= mask_valid
+    valid = np.isfinite(along) & np.isfinite(slant) & np.isfinite(corr)
+    if mask_valid is not None:
+        valid &= mask_valid
     def clean(a):
         z = np.asarray(a, dtype=float).copy()
         z[~valid] = np.nan
