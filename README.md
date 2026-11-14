@@ -38,7 +38,7 @@ Open `http://localhost:5173`. For local development the frontend defaults to `ht
 
 - Open **NISAR Radar Lab** and search the ASF catalog using the prefilled Himalayan example bounding box. This is a regional example footprint, not a verified outline for Samudra Tapu, Bara Shigri, or Gangotri.
 - To preview a granule, upload a NISAR GOFF `.h5`/`.hdf5` file. The API processes the upload temporarily; it does not retain it as a permanent archive.
-- ASF catalog search returns metadata. Downloading full granules requires NASA Earthdata Login; automatic product download is not included yet.
+- ASF catalog search returns metadata. The **Stream preview from ASF** action resolves a selected GOFF granule through Earthdata and opens it over authenticated HTTPS for a downsampled preview; visitors do not upload the full granule. Configure `EARTHDATA_USERNAME` and `EARTHDATA_PASSWORD` as private backend environment variables. This is a preview path, not a persistent processing/archive pipeline.
 
 ## Scientific limitations
 
