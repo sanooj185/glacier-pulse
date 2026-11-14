@@ -218,7 +218,7 @@ export default function GlacierExplorer({ api, data }) {
   const p = selected?.properties;
 
   return (
-    <div className="gx">
+    <div className="gx"><div className="gx-intro"><div><span>GLACIER DISCOVERY</span><h2>Find a glacier. Explore its observations.</h2><p>Search by name or explore the map. Select a glacier to see which NISAR observations actually overlap it.</p></div><div className="gx-intro-mark"><Mountain size={27}/></div></div>
       {status && !status.loaded && (
         <div className="gx-banner"><AlertTriangle size={17} /><div>
           <b>No glacier outlines are installed on this API yet.</b>
@@ -227,7 +227,7 @@ export default function GlacierExplorer({ api, data }) {
       )}
       <div className="gx-layout">
         <section className="gx-mapcard">
-          <div className="gx-toolbar">
+          <div className="gx-toolbar"><div className="gx-map-title"><b>Explore the map</b><span>{status?.loaded ? "Zoom in to reveal glacier boundaries" : "Map view · glacier inventory not connected"}</span></div>
             <div className="gx-search">
               <Search size={15} />
               <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={status?.loaded ? 'Search glacier name or RGI ID…' : 'Search needs the glacier inventory'} disabled={!status?.loaded} aria-label="Search glaciers" />
@@ -250,23 +250,23 @@ export default function GlacierExplorer({ api, data }) {
           <div className="gx-mapwrap">
             <div ref={host} className="gx-map" />
             <div className="gx-layerbox">
-              <b><Layers size={13} /> Layers</b>
-              <label><input type="checkbox" checked={layers.outlines} onChange={() => toggle('outlines')} /> Glacier outlines</label>
-              <label><input type="checkbox" checked={layers.footprints} onChange={() => toggle('footprints')} /> Observation footprints</label>
+              <b><Layers size={13} /> Map layers</b>
+              <label><input type="checkbox" checked={layers.outlines} onChange={() => toggle('outlines')} /> Glacier boundaries</label>
+              <label><input type="checkbox" checked={layers.footprints} onChange={() => toggle('footprints')} /> NISAR coverage</label>
               <label><input type="checkbox" checked={layers.grid} onChange={() => toggle('grid')} disabled={!ring} /> Loaded GOFF grid extent{!ring && ' (none loaded)'}</label>
             </div>
-            <div className="gx-legend" aria-label="Legend">
-              <b>Legend</b>
-              <span><i className="sw outline" /> Glacier outline (RGI)</span>
+            <div className="gx-legend" aria-label="Map key">
+              <b>MAP KEY</b>
+              <span><i className="sw outline" /> Glacier boundary</span>
               <span><i className="sw selected" /> Selected glacier</span>
-              <span><i className="sw full" /> Footprint · full coverage</span>
-              <span><i className="sw partial" /> Footprint · partial coverage</span>
+              <span><i className="sw full" /> Full observation coverage</span>
+              <span><i className="sw partial" /> Partial observation coverage</span>
               <span><i className="sw grid" /> Loaded GOFF grid extent</span>
             </div>
           </div>
           <div className="gx-status">
-            {!status?.loaded ? 'Glacier inventory not installed'
-              : view.zoom < MIN_OUTLINE_ZOOM ? `Zoom in to level ${MIN_OUTLINE_ZOOM}+ to load glacier outlines (now ${view.zoom})`
+            {!status?.loaded ? 'Glacier boundary data not connected'
+              : view.zoom < MIN_OUTLINE_ZOOM ? `Zoom in a little more to reveal glacier boundaries`
               : view.loading ? 'Loading outlines…'
               : view.error ? view.error
               : `${view.shown.toLocaleString()} outlines shown${view.truncated ? ` of ${view.total.toLocaleString()} in view (largest first — zoom in for the rest)` : ''}`}
@@ -275,36 +275,36 @@ export default function GlacierExplorer({ api, data }) {
 
         <aside className="gx-panel">
           {!selected ? (
-            <div className="gx-empty"><Mountain size={22} /><h3>Select a glacier</h3>
-              <p>Click an outline on the map or search by name. You will see its inventory record and the NISAR GOFF observations whose footprints actually intersect it.</p></div>
+            <div className="gx-empty"><Mountain size={25} /><h3>Your next glacier is out there.</h3>
+              <p>Search for a glacier by name, or zoom into the map and select a boundary. We’ll show its size and any NISAR observations that truly overlap it.</p><div className="gx-empty-hint">TIP · Try searching a glacier name once the boundary inventory is connected.</div></div>
           ) : (
             <>
               <div className="gx-profile">
-                <small>GLACIER PROFILE</small>
+                <small>YOUR SELECTED GLACIER</small>
                 <h3>{p.name || 'Unnamed glacier'}</h3>
-                <code>{selected.id}</code>
+                
                 <dl>
                   <div><dt>Area</dt><dd>{fmtArea(p.area_km2 ?? p.areaKm2)}</dd></div>
                   <div><dt>Region</dt><dd>{p.region || '—'}</dd></div>
-                  <div><dt>Centroid</dt><dd>{p.cenlat != null ? `${Number(p.cenlat).toFixed(3)}°, ${Number(p.cenlon).toFixed(3)}°` : '—'}</dd></div>
+                  
                   {p.src_date && <div><dt>Outline date</dt><dd>{p.src_date}</dd></div>}
-                  {p.glac_type != null && <div><dt>RGI type code</dt><dd>{p.glac_type}</dd></div>}
-                  {p.term_type != null && <div><dt>RGI terminus code</dt><dd>{p.term_type}</dd></div>}
+                  
+                  
                 </dl>
-                <p className="gx-fine">Outlines are inventory polygons mapped at the date above, not a measurement of today's glacier extent.</p>
+                <p className="gx-fine">Boundary outlines come from a dated glacier inventory. They are not a live measurement of today’s ice edge.</p>
               </div>
               <div className="gx-obs">
-                <h4><MapPin size={14} /> NISAR GOFF observations</h4>
-                {obs.loading && <p className="gx-fine">Searching ASF and intersecting footprints with this outline…</p>}
+                <h4><MapPin size={14} /> Satellite observations</h4>
+                {obs.loading && <p className="gx-fine">Checking which NISAR observations overlap this glacier…</p>}
                 {obs.error && <p className="gx-err">{obs.error}</p>}
-                {!obs.loading && !obs.error && obs.list.length === 0 && <p className="gx-fine">No GOFF products found whose footprint intersects this outline{obs.dropped ? ` (${obs.dropped} nearby products did not overlap it)` : ''}. This is not evidence about glacier movement.</p>}
+                {!obs.loading && !obs.error && obs.list.length === 0 && <p className="gx-fine">No NISAR observations found over this glacier{obs.dropped ? ` (${obs.dropped} nearby products did not overlap it)` : ''}. Try another date range or check back as more observations become available.</p>}
                 <div className="gx-obslist">
                   {obs.list.map((o) => (
                     <button key={o.granuleId} className={activeObs === o.granuleId ? 'on' : ''} onClick={() => setActiveObs(activeObs === o.granuleId ? null : o.granuleId)}>
                       <span><b>{fmtDate(o.startTime)}</b> <CoverageBadge coverage={o.coverage} /></span>
                       <small>{[o.dataMaturity, o.flightDirection && `Orbit ${o.flightDirection}`, o.pathNumber && `Path ${o.pathNumber}`].filter(Boolean).join(' · ')}</small>
                       {o.coverage?.nearEdge && <small className="gx-warn">Within {5} km of the footprint edge — coverage is approximate</small>}
-                      <small className="gx-id">{o.granuleId}</small>
+                      <small className="gx-id">Select to highlight this observation on the map</small>
                     </button>
                   ))}
                 </div>
@@ -315,12 +315,12 @@ export default function GlacierExplorer({ api, data }) {
 
           {ring && (
             <div className="gx-obs gx-grid">
-              <h4><ShieldCheck size={14} /> Loaded GOFF grid extent</h4>
-              {!status?.loaded ? <p className="gx-fine">Install the glacier inventory to list glaciers inside this extent.</p>
-                : gridCover.loading ? <p className="gx-fine">Intersecting with glacier outlines…</p>
+              <h4><ShieldCheck size={14} /> Glaciers in this observation</h4>
+              {!status?.loaded ? <p className="gx-fine">Connect the glacier boundary dataset to identify glaciers in this observation area.</p>
+                : gridCover.loading ? <p className="gx-fine">Checking which glacier boundaries overlap this observation…</p>
                 : gridCover.error ? <p className="gx-err">{gridCover.error}</p>
                 : <>
-                    <p className="gx-fine"><b>{gridCover.count.toLocaleString()}</b> inventory glaciers intersect the grid extent of the loaded granule. This is the extent of the grid, not the footprint of valid, high-quality pixels.</p>
+                    <p className="gx-fine"><b>{gridCover.count.toLocaleString()}</b> glaciers overlap the loaded observation area. This is a geographic overlap check, not proof that every pixel is usable.</p>
                     <div className="gx-obslist">
                       {gridCover.list.slice(0, 8).map((g) => (
                         <button key={g.id} onClick={() => selectGlacier(g.id)}>
@@ -329,7 +329,7 @@ export default function GlacierExplorer({ api, data }) {
                         </button>
                       ))}
                     </div>
-                    {gridCover.count > 8 && <p className="gx-fine">Showing the 8 largest. Search by name to find others.</p>}
+                    {gridCover.count > 8 && <p className="gx-fine">Showing 8 glaciers. Search by name to find another.</p>}
                   </>}
             </div>
           )}
