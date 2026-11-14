@@ -141,3 +141,142 @@
 .catalog-action:disabled{opacity:.55;filter:grayscale(.4)}
 .catalog-list::-webkit-scrollbar{width:6px}.catalog-list::-webkit-scrollbar-thumb{background:#31515a;border-radius:9px}
 @media(max-width:680px){.catalog-item{grid-template-columns:1fr auto;padding:13px}.catalog-date{grid-column:1/-1}.catalog-main{grid-column:1}.catalog-action{grid-column:2;grid-row:2;min-width:96px}.catalog-top{gap:10px}}
+
+
+/* ===== Glacier Pulse: Aurora / deep-ice visual system ===== */
+:root{
+ color-scheme:dark;
+ --bg:#07111f;
+ --panel:#0c1b2b;
+ --panel2:#10243a;
+ --surface:#0a1929;
+ --line:#20364c;
+ --muted:#91a8bd;
+ --text:#eaf4ff;
+ --accent:#61e6d2;
+ --teal:#61e6d2;
+ --blue:#8ba9ff;
+ --ice:#a8e9f3;
+ --violet:#a99aff;
+ --glow:rgba(97,230,210,.16);
+ font-family:'DM Sans',sans-serif;
+}
+body{
+ background:
+ radial-gradient(ellipse at 72% -12%,rgba(74,115,205,.17),transparent 42rem),
+ radial-gradient(ellipse at 10% 34%,rgba(37,190,177,.08),transparent 36rem),
+ var(--bg);
+ color:var(--text);
+}
+.sidebar{
+ background:linear-gradient(180deg,#0a1a2b 0%,#081523 100%);
+ border-right-color:#1d3449;
+ box-shadow:12px 0 40px #02091435;
+}
+.brandmark{
+ background:linear-gradient(145deg,#153e4c,#1b3155);
+ color:#8cf4e3;border:1px solid #3d7580;
+ box-shadow:0 0 24px rgba(97,230,210,.12);
+}
+.brand b{letter-spacing:1.5px}
+.workspace{background:#0d2031;border-color:#29445d;color:#b4c9db}
+.navlabel{color:#66829a}
+.navitem{color:#9db2c6;transition:background .18s,border-color .18s,color .18s}
+.navitem:hover{background:#142a40;color:#eff8ff}
+.navitem.active{
+ background:linear-gradient(100deg,rgba(48,192,177,.18),rgba(83,112,190,.13));
+ color:#a5fff0;border:1px solid #397b7b;box-shadow:inset 3px 0 #61e6d2;
+}
+.dot,.pulse{background:#69f0c7;box-shadow:0 0 12px #69f0c780}
+header{
+ background:rgba(7,17,31,.86);
+ border-bottom-color:#20364c;
+ backdrop-filter:blur(18px) saturate(145%);
+}
+.crumb{color:#8ba7bd}.crumb span{color:#526c85}
+.mode{background:#0b1b2c;border-color:#29425a}
+.mode button{color:#9cb3c8}
+.mode button.selected{background:linear-gradient(120deg,#164c50,#263d69);color:#b4fff0}
+.avatar{background:linear-gradient(145deg,#214c5b,#3c477b);color:#d9fff7;border:1px solid #557a94}
+.content{padding-top:40px}
+.eyebrow{color:#91c9df;letter-spacing:1.8px}
+.eyebrowline{background:linear-gradient(90deg,#61e6d2,#a99aff);width:32px}
+.herohead h1{color:#f1f8ff;letter-spacing:-2px}
+.sub{color:#a5b9cc}
+.heroimage{
+ border:1px solid #35536b;
+ box-shadow:0 18px 60px #02091466;
+ background:
+ linear-gradient(90deg,rgba(4,15,27,.94),rgba(4,15,27,.65) 43%,rgba(4,15,27,.04)),
+ linear-gradient(0deg,rgba(4,15,27,.48),transparent 55%),
+ url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1800&q=85') center 48%/cover;
+}
+.livepill{color:#a8fff0;border-color:#3a7e7a;background:#092b30c9}
+.heroimage h2 i{background:linear-gradient(90deg,#72f0d8,#a5c5ff);background-clip:text;-webkit-background-clip:text;color:transparent}
+.primary{
+ background:linear-gradient(110deg,#70ead5,#9de8ef);
+ color:#08202a;border:1px solid #a5fff0;
+ box-shadow:0 5px 18px rgba(75,220,200,.14);
+ transition:transform .18s,filter .18s,box-shadow .18s;
+}
+.primary:hover{background:linear-gradient(110deg,#a2f8e8,#c1f4f8);transform:translateY(-1px);box-shadow:0 8px 24px rgba(75,220,200,.22)}
+.secondary{background:#142d43;color:#b9e7ef;border-color:#42617d}
+.module,.panel,.mapcard,.uploadbar,.dropzone,.stat,.gx-mapcard,.gx-empty,.gx-profile,.gx-obs{
+ background:linear-gradient(145deg,rgba(16,37,57,.96),rgba(10,26,43,.98));
+ border-color:#29445c;
+ box-shadow:0 10px 30px rgba(1,8,18,.15);
+}
+.module{border-radius:13px;min-height:164px;transition:transform .2s,border-color .2s,box-shadow .2s}
+.module:hover{background:linear-gradient(145deg,#15364a,#142b48);border-color:#58b6b0;box-shadow:0 14px 34px rgba(1,8,18,.3),0 0 0 1px rgba(97,230,210,.08)}
+.moduleicon,.dropicon,.emptyicon,.aiicon{
+ background:linear-gradient(145deg,#16434b,#273b68);
+ color:#8df5e2;border:1px solid #3b777c;
+}
+.module h3,.uploadbar b,.sectiontitle h2{color:#edf7ff}
+.module p,.sectiontitle p,.uploadbar p{color:#9cb2c5}
+.modnum{color:#7893aa}
+.fieldlabel{color:#a6bdd0}
+.fieldlabel input,.fieldlabel select,.maphead select,.askrow input{
+ background:#081827;color:#e7f5ff;border-color:#2c4961;
+}
+.fieldlabel input:focus,.fieldlabel select:focus,.askrow input:focus{outline:2px solid #61e6d2;border-color:#61e6d2}
+.dropzone{border-color:#3b6177;background:linear-gradient(145deg,#0e2438,#0a192a)}
+.dropzone.drag{border-color:#61e6d2;background:#12313a}
+.dropmeta span,.tagrow span{background:#142d42;border-color:#34546e;color:#b4dce8}
+.stat{background:linear-gradient(145deg,#10283b,#0b1c2e)}
+.stat b{color:#e9f5ff}.stat small,.stat span{color:#8ba9bf}
+.notice{background:linear-gradient(100deg,#112d39,#172744);border-color:#315b70;color:#b9dfe2}
+.notice svg{color:#78e5d4}
+.errorbox,.error{background:#321f2c;border-color:#82475b;color:#ffc2c7}
+.content footer{border-color:#20364c;color:#718ba1}
+.content footer b{color:#75dfd0}
+.catalog-item{background:linear-gradient(110deg,#122a40,#102237);border-color:#2b4963}
+.catalog-item:hover{border-color:#4e9998}
+.catalog-date span{color:#f1f8ff}
+.catalog-tags .catalog-type{color:#8ffff0;background:#153d42;border-color:#397b79}
+.catalog-tags span{color:#a7bfd1;border-color:#34516a}
+.catalog-main details code{color:#a4bbcd}
+.catalog-top b{color:#eef7ff}
+.gx-banner{background:linear-gradient(100deg,#382d18,#2b2638);border-color:#75613a;color:#f8dfa0}
+.gx-banner p{color:#e6d7b3}
+.gx-search{background:#0b1e30;border-color:#2a4962}
+.gx-results{background:#0c1d30;border-color:#31506b}
+.gx-results button:hover,.gx-results button:focus{background:#173a48}
+.gx-switch{background:#0b1e30;border-color:#2a4962}
+.gx-switch button{color:#a9bfd0}
+.gx-switch button.on{background:linear-gradient(100deg,#174d4b,#263b67);color:#b6fff0}
+.gx-layerbox,.gx-legend{background:rgba(7,19,34,.91);border-color:#45617a}
+.gx-layerbox b,.gx-legend b,.gx-profile small{color:#8ff3e0}
+.gx-empty h3,.gx-obs h4{color:#eaf5ff}
+.gx-obslist button{background:#10253a;border-color:#2a465e;color:#eaf5ff}
+.gx-obslist button.on{background:#173b42;border-color:#61e6d2}
+.gx-badge.full{background:#123e39;color:#8cf5d3}
+.gx-badge.partial{background:#45351b;color:#ffda8a}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #a99aff;outline-offset:3px}
+.geo-panel,.search-map-panel{box-shadow:0 12px 36px rgba(1,8,18,.2)}
+.geo-head,.geo-controls,.geo-caveat,.search-map-head,.search-map-message{background:#f5f8f6}
+@media(max-width:650px){
+ .sidebar{background:#0a1a2b}
+ .content{padding-top:25px}
+ .heroimage{box-shadow:0 12px 34px #02091466}
+}
