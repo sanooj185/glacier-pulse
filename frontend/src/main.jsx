@@ -15,7 +15,7 @@ function SearchRegionMap({bbox,setBbox}){
  const [message,setMessage]=useState('Click the map to search around a point, or drag to draw a rectangle.');
  useEffect(()=>{
   if(!host.current||mapRef.current)return;
-  const map=L.map(host.current,{scrollWheelZoom:true}).setView([36.6,88.2],5);
+  const map=L.map(host.current,{scrollWheelZoom:true,dragging:selection==='point'}).setView([36.6,88.2],5);
   mapRef.current=map;
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:18,attribution:'© OpenStreetMap contributors © CARTO'}).addTo(map);
   const update=(bounds,label)=>{
