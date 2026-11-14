@@ -91,8 +91,8 @@ export default function GlacierExplorer({ api, data }) {
     if (baseRef.current) map.removeLayer(baseRef.current);
     const labels = base === 'labels';
     baseRef.current = L.tileLayer(
-      labels ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png' : 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      { maxZoom: 18, attribution: labels ? '© OpenStreetMap contributors © CARTO' : 'Tiles © Esri' }
+      labels ? 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' : 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      { maxZoom: 18, attribution: labels ? '© OpenStreetMap contributors' : 'Tiles © Esri' }
     ).addTo(map);
     baseRef.current.bringToBack();
   }, [base]);
