@@ -420,3 +420,56 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
   .gx-layerbox{top:8px;right:8px;padding:8px;font-size:10px}
   .gx-legend{left:8px;bottom:8px;padding:8px;font-size:10px}
 }
+
+
+/* Glacier Pulse visual refresh — inspired by the supplied interface references */
+:root{--bg:#03101f;--panel:#061d31;--panel2:#092944;--line:#12415d;--muted:#91adbf;--teal:#08d9ed;--blue:#168ecb;color-scheme:dark}
+body{background:radial-gradient(ellipse at 78% 0%,#07345a 0,transparent 38%),#020d1a;color:#eaf7ff}
+.sidebar{background:linear-gradient(180deg,#031326 0%,#04182b 68%,#02101e 100%);border-right:1px solid #10415f;padding-top:22px}
+.brandmark{background:transparent;color:#00d9ef;border:1px solid #087b9c;border-radius:10px;box-shadow:0 0 22px #00cde633}
+.brand b{font-size:13px;color:#f4fbff}.brand small{color:#8baabd}
+.workspace{background:#08233a;border-color:#124968;color:#c0d9e8;border-radius:11px}
+.navitem{color:#b1c5d4;border-radius:10px;padding:12px 13px;font-size:13px}
+.navitem:hover{background:#0a2a45;color:#fff}
+.navitem.active{background:linear-gradient(100deg,#08cfe5 0%,#0876a7 100%);color:#001a2b;font-weight:750;box-shadow:0 0 24px #00d9ed55}
+.navitem.active svg{color:#00273a}
+.pulse,.dot{background:#08e4d1;box-shadow:0 0 12px #08e4d1}
+.main{background:linear-gradient(180deg,#031427 0%,#04182b 100%)}
+header{height:62px;padding:0 28px;background:#031326ed;border-bottom:1px solid #10415b;gap:20px}
+.topnav{display:flex;align-items:center;gap:clamp(8px,1.5vw,24px);min-width:0;overflow-x:auto;height:100%;scrollbar-width:none}
+.topnav button{height:100%;white-space:nowrap;border:0;border-bottom:2px solid transparent;background:transparent;color:#b7c9d8;padding:0 4px;font-size:12px;cursor:pointer}
+.topnav button:hover,.topnav button.topnav-active{color:#fff}
+.topnav button.topnav-active{border-bottom-color:#08d9ed;text-shadow:0 0 15px #08d9ed66}
+.headright{gap:14px;flex-shrink:0}
+.global-search{display:flex;align-items:center;gap:9px;width:min(26vw,330px);min-width:190px;border:1px solid #124765;border-radius:24px;padding:9px 13px;background:#041a2d;color:#91b6c9}
+.global-search:focus-within{border-color:#08d9ed;box-shadow:0 0 0 3px #08d9ed18}
+.global-search input{width:100%;min-width:0;background:transparent;border:0;outline:0;color:#eaf7ff;font-size:11px}
+.global-search input::placeholder{color:#87a4b8}
+.avatar{background:linear-gradient(145deg,#174e70,#102b49);border:1px solid #28658a;color:#d9f7ff}
+.content{padding-top:28px}
+.eyebrow{color:#80dce9}
+.herohead h1{font-size:clamp(34px,4.2vw,54px);letter-spacing:-2px}
+.sub{color:#b3c9d9}
+.heroimage{height:360px;border:1px solid #126184;border-radius:16px;background:linear-gradient(90deg,rgba(2,14,29,.94),rgba(2,20,38,.68) 42%,rgba(2,20,38,.04)),linear-gradient(0deg,rgba(2,14,29,.3),transparent 55%),url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1900&q=90') center 48%/cover;box-shadow:0 18px 55px #0005}
+.heroimageoverlay{padding:36px 42px}.heroimage h2{font-size:clamp(32px,3.6vw,48px)}.heroimage h2 i{color:#08d9ed}
+.livepill{color:#9cf7ff;border-color:#087f9b;background:#042c40d9}
+.primary{background:linear-gradient(100deg,#08d9ed,#0b9bc9);border:1px solid #2ceaff;color:#001827;border-radius:9px;box-shadow:0 0 22px #08d9ed35}
+.primary:hover{background:#69efff;color:#001827}
+.sectiontitle h2{font-size:21px}.sectiontitle p{color:#9bb8ca}
+.modulegrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.module{background:linear-gradient(145deg,#09243b,#06182b);border:1px solid #124866;border-radius:14px;min-height:170px;padding:19px;overflow:hidden}
+.module:hover{border-color:#08cfe5;box-shadow:0 10px 32px #00cde51c}
+.moduleicon{background:#07364a;color:#08d9ed;border:1px solid #12617b}
+.module h3{font-size:15px}.module p{color:#a7bfce}
+.panel,.mapcard,.stat,.dropzone{background:linear-gradient(145deg,#08243a,#06182a);border-color:#124967;border-radius:14px;box-shadow:0 10px 35px #0002}
+.panel{padding:24px}
+.fieldlabel input,.fieldlabel select,.maphead select{background:#041a2c;color:#eaf7ff;border-color:#1b4c68}
+.notice{background:#062b3c;border-color:#11617a;color:#b4e6ef}
+.secondary,.uploadbtn{background:#082c40;color:#a9f7ff;border-color:#14627c;border-radius:9px}
+.stat b{color:#08d9ed}
+.catalog-item{border-color:#17445c}
+.dropzone{border-color:#1b6078}
+.errorbox,.error{background:#321e29;border-color:#9a455c}
+.content footer{border-color:#123b54;color:#7695a9}
+@media(max-width:1050px){header{padding:0 16px}.topnav{gap:12px}.topnav button{font-size:11px}.global-search{width:210px;min-width:160px}}
+@media(max-width:760px){header{height:auto;min-height:58px;align-items:flex-start;flex-direction:column;padding:9px 14px;gap:8px}.topnav{width:100%;height:35px}.headright{width:100%;justify-content:space-between}.global-search{width:calc(100% - 48px)}.modulegrid{grid-template-columns:1fr}.heroimage{height:330px}.heroimageoverlay{padding:24px}}
