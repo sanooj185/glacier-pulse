@@ -1,17 +1,18 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';import{createRoot}from'react-dom/client';import{Activity,ArrowUpRight,BarChart3,BookOpen,ChevronDown,CloudUpload,Compass,Database,Globe2,Layers,Menu,MessageCircle,Mountain,Satellite,Search,ShieldCheck,SlidersHorizontal,Sparkles,Timer,Upload,Wind}from'lucide-react';import'leaflet/dist/leaflet.css';import L from 'leaflet';import GlacierExplorer from './GlacierExplorer.jsx';import'./style.css';
 const configuredApi=(import.meta.env.VITE_API_URL||'').trim();
 const API=configuredApi ? (configuredApi.startsWith('http') ? configuredApi : `https://${configuredApi}`).replace(/\/$/,'') : 'http://localhost:8000';
-async function fetchWithRetry(url, options={}, retries=2){
+async function fetchWithRetry(url, options={}){
  let lastError;
- for(let attempt=0;attempt<=retries;attempt++){
+ const delays=[2000,4000,8000,12000,15000,20000];
+ for(let attempt=0;attempt<=delays.length;attempt++){
   try{
    const response=await fetch(url,options);
-   if(![502,503,504].includes(response.status)||attempt===retries)return response;
+   if(![502,503,504].includes(response.status)||attempt===delays.length)return response;
    lastError=new Error(`API temporarily unavailable (${response.status})`);
-  }catch(error){lastError=error;if(attempt===retries)throw error;}
-  await new Promise(resolve=>setTimeout(resolve,1200*Math.pow(2,attempt)));
+  }catch(error){lastError=error;if(attempt===delays.length)throw new Error('The Glacier Pulse API is not responding. The free Render service may still be waking up; please wait a minute and retry.');}
+  await new Promise(resolve=>setTimeout(resolve,delays[attempt]));
  }
- throw lastError;
+ throw lastError || new Error('API unavailable');
 }
 function App(){const[page,setPage]=useState('Overview'),[layer,setLayer]=useState('alongTrack'),[data,setData]=useState(null),[busy,setBusy]=useState(false),[err,setErr]=useState(''),[mode,setMode]=useState('Explore'),[query,setQuery]=useState('');
 const nav=[['Overview',Compass],['NISAR Radar Lab',Satellite],['Glacier Explorer',Globe2],['Movement Intelligence',Activity],['Time Machine',Timer],['AI Interpreter',Sparkles],['Research & Reports',BookOpen]];
