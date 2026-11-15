@@ -73,6 +73,7 @@ export default function GlacierExplorer({ api, data, onOpenObservation }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [searchErr, setSearchErr] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
   const [selected, setSelected] = useState(null);       // full GeoJSON feature
   const [attribution, setAttribution] = useState(null);
   const [obs, setObs] = useState({ loading: false, error: '', list: [], dropped: 0, note: '' });
@@ -217,14 +218,33 @@ export default function GlacierExplorer({ api, data, onOpenObservation }) {
 
   // ---------------------------------------------------------------- search
   useEffect(() => {
-    if (query.trim().length < 2 || !status?.loaded) { setResults([]); setSearchErr(''); return undefined; }
+    const term = query.trim();
+    if (term.length < 2 || !status?.loaded) {
+      setResults([]);
+      setSearchErr('');
+      setSearchLoading(false);
+      return undefined;
+    }
+    const controller = new AbortController();
     let alive = true;
+    setResults([]);
+    setSearchErr('');
+    setSearchLoading(true);
     const t = setTimeout(() => {
-      getJson(`${api}/api/glaciers/search?q=${encodeURIComponent(query.trim())}&limit=12`)
-        .then((r) => { if (alive) { setResults(r.results); setSearchErr(r.results.length ? '' : 'No glacier with that name or ID in the installed inventory.'); } })
-        .catch((e) => alive && setSearchErr(e.message));
-    }, 250);
-    return () => { alive = false; clearTimeout(t); };
+      getJson(`${api}/api/glaciers/search?q=${encodeURIComponent(term)}&limit=12`, { signal: controller.signal })
+        .then((r) => {
+          if (!alive) return;
+          const matches = Array.isArray(r.results) ? r.results : [];
+          setResults(matches);
+          setSearchErr(matches.length ? '' : 'No glacier found. Try another spelling or an RGI ID.');
+        })
+        .catch((e) => {
+          if (!alive || e.name === 'AbortError') return;
+          setSearchErr(e.message || 'Search temporarily unavailable. Please try again.');
+        })
+        .finally(() => { if (alive) setSearchLoading(false); });
+    }, 180);
+    return () => { alive = false; clearTimeout(t); controller.abort(); };
   }, [api, query, status]);
 
   const toggle = (k) => setLayers((l) => ({ ...l, [k]: !l[k] }));
@@ -244,14 +264,15 @@ export default function GlacierExplorer({ api, data, onOpenObservation }) {
             <div className="gx-search">
               <Search size={15} />
               <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={status?.loaded ? 'Search glacier name or RGI ID…' : 'Type a glacier name or RGI ID…'} aria-label="Search glaciers" />
-              {(results.length > 0 || searchErr) && (
-                <div className="gx-results" role="listbox">
+              {(query.trim().length >= 2 && (searchLoading || results.length > 0 || searchErr)) && (
+                <div className="gx-results" role="listbox" aria-live="polite">
+                  {searchLoading && <p>Searching glacier inventory…</p>}
                   {results.map((r) => (
-                    <button key={r.id} role="option" onClick={() => { setQuery(''); selectGlacier(r.id); }}>
+                    <button key={r.id} role="option" onClick={() => { setQuery(''); setResults([]); selectGlacier(r.id); }}>
                       <b>{r.name || 'Unnamed glacier'}</b><span>{fmtArea(r.areaKm2)} · {r.region || r.id}</span>
                     </button>
                   ))}
-                  {searchErr && <p>{searchErr}</p>}
+                  {!searchLoading && searchErr && <p>{searchErr}</p>}
                 </div>
               )}
             </div>
