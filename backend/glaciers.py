@@ -17,6 +17,7 @@ Spatial maths
 """
 from __future__ import annotations
 
+import gzip
 import json
 import os
 import re
@@ -87,7 +88,9 @@ class GlacierInventory:
     # ------------------------------------------------------------------ loading
     @classmethod
     def from_file(cls, path: str | os.PathLike) -> "GlacierInventory":
-        with open(path, "r", encoding="utf-8") as handle:
+        path = Path(path)
+        opener = gzip.open if path.suffix.lower() == ".gz" else open
+        with opener(path, "rt", encoding="utf-8") as handle:
             data = json.load(handle)
         if data.get("type") != "FeatureCollection":
             raise ValueError("Glacier inventory must be a GeoJSON FeatureCollection.")
