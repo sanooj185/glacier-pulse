@@ -248,7 +248,12 @@ def stream_asf_preview(request: StreamRequest):
         maturity_to_collection["URGENT_RESPONSE"] = "NISAR_UR_L2"
         maturities = ["URGENT_RESPONSE"]
     else:
-        maturities = [request.maturity.upper()] if request.maturity else ["PROVISIONAL", "BETA", "VALIDATED"]
+        requested_maturity = (request.maturity or "").strip().upper()
+        # ASF metadata labels can differ between catalogue versions. Only use a
+        # single collection for the three recognised CMR maturity values;
+        # otherwise search all GOFF maturity collections rather than returning
+        # a misleading "not found" without searching anything.
+        maturities = [requested_maturity] if requested_maturity in maturity_to_collection else ["PROVISIONAL", "BETA", "VALIDATED"]
     # earthaccess exposes CMR readable_granule_name as the granule_name argument.
     target_id = granule_id.removesuffix(".h5")
     granules = []
