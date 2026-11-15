@@ -15,7 +15,19 @@ const fmtArea = (v) => (v == null ? '—' : v >= 10 ? `${Number(v).toFixed(1)} k
 const fmtDate = (s) => (s ? String(s).slice(0, 10) : 'date unavailable');
 
 async function getJson(url, options) {
-  const res = await fetch(url, options);
+  let res, lastError;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      res = await fetch(url, options);
+      if (![502, 503, 504].includes(res.status) || attempt === 2) break;
+      lastError = new Error(`API temporarily unavailable (${res.status})`);
+    } catch (error) {
+      lastError = error;
+      if (attempt === 2) throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1200 * (2 ** attempt)));
+  }
+  if (!res) throw lastError || new Error('API unavailable');
   let body = null;
   try { body = await res.json(); } catch { /* non-JSON error body */ }
   if (!res.ok) throw new Error((body && body.detail) || `Request failed (${res.status})`);
