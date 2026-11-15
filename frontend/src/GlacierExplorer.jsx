@@ -75,7 +75,7 @@ export default function GlacierExplorer({ api, data }) {
   // ---------------------------------------------------------------- map init
   useEffect(() => {
     if (!host.current || mapRef.current) return undefined;
-    const map = L.map(host.current, { zoomControl: true, preferCanvas: true }).setView([33.0, 78.0], 6);
+    const map = L.map(host.current, { zoomControl: true, preferCanvas: true }).setView([34.0, 82.0], 7);
     mapRef.current = map;
     outlinesRef.current = L.geoJSON(null).addTo(map);
     footprintsRef.current = L.layerGroup().addTo(map);
