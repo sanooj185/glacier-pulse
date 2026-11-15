@@ -397,3 +397,26 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 .gx-obslist .gx-id{font:9px 'DM Sans';color:#7fa2b5}
 .gx-status{font:10px 'DM Sans';letter-spacing:.1px}
 @media(max-width:600px){.gx-intro{padding:18px}.gx-intro-mark{width:44px;height:44px}.gx-toolbar{align-items:stretch}.gx-map-title{width:100%}}
+
+
+/* Glacier Explorer responsive layout: keep map and insight panel inside viewport */
+.gx-layout{grid-template-columns:minmax(0,1fr) minmax(260px,290px);width:100%;max-width:100%;min-width:0}
+.gx-layout>*{min-width:0}
+.gx-mapcard,.gx-panel{min-width:0;max-width:100%}
+.gx-toolbar{min-width:0}
+.gx-search{min-width:min(220px,100%)}
+.gx-map{width:100%;max-width:100%}
+.gx-panel{overflow-wrap:anywhere}
+@media(max-width:1180px){
+  .gx-layout{grid-template-columns:minmax(0,1fr)}
+  .gx-panel{grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));align-items:start}
+}
+@media(max-width:650px){
+  .gx-layout{gap:10px}
+  .gx-toolbar{align-items:stretch}
+  .gx-map-title,.gx-search{width:100%;flex:1 1 100%}
+  .gx-switch{width:max-content;max-width:100%}
+  .gx-map{height:56vh;min-height:320px}
+  .gx-layerbox{top:8px;right:8px;padding:8px;font-size:10px}
+  .gx-legend{left:8px;bottom:8px;padding:8px;font-size:10px}
+}
