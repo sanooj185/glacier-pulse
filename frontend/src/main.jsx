@@ -203,20 +203,6 @@ function TimeMachine({data}){
   <div className="tm-next"><div><b>Build a longer story</b><p>Search the same region in NISAR Radar Lab and compare additional acquisition pairs. Keep track, viewing geometry, product type and quality in mind.</p></div><span>PAIR ≠ TREND</span></div></>}
  </div>
 }
-function TimeMachine({data}){
- const m=data?.metadata||{},ref=m.referenceStart,sec=m.secondaryStart;
- const fmt=v=>v?new Date(v).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}):'Date unavailable';
- const days=ref&&sec?Math.round(Math.abs(new Date(sec)-new Date(ref))/86400000):null;
- const dateGap=days===null?'Waiting for an observation pair':days===0?'Same-day pair':days+' day'+(days===1?'':'s')+' between acquisitions';
- return <div className="time-page">
-  <div className="time-hero"><div><span className="eyebrowline"/> OBSERVATION HISTORY<h2>Time, written in ice.</h2><p>Every GOFF observation is a comparison between two radar acquisitions. Explore the pair, its interval and the limits of what one pair can tell us.</p></div><div className="time-orbit"><Timer size={30}/><b>{days!==null?days+'d':'—'}</b><small>PAIR INTERVAL</small></div></div>
-  {!data?<div className="time-empty"><Timer size={28}/><h3>Your timeline starts with an observation</h3><p>Open a GOFF product in NISAR Radar Lab. Its acquisition pair will appear here.</p></div>:
-  <><div className="tm-summary"><div><small>SELECTED OBSERVATION</small><b>{m.granuleId?.includes('_UR_')?'Urgent Response GOFF':'Precision GOFF'}</b></div><div><small>TRACK</small><b>{m.trackNumber||'Not listed'}</b></div><div><small>ORBIT</small><b>{m.orbitPassDirection||'Not listed'}</b></div></div>
-  <div className="tm-timeline"><div className="tm-line"></div><article className="tm-event"><span className="tm-node"></span><small>01 · REFERENCE</small><b>{fmt(ref)}</b><p>First acquisition in the pair</p><code>{ref||'Timestamp unavailable'}</code></article><div className="tm-gap"><span>{dateGap}</span></div><article className="tm-event tm-event-secondary"><span className="tm-node"></span><small>02 · SECONDARY</small><b>{fmt(sec)}</b><p>Second acquisition in the pair</p><code>{sec||'Timestamp unavailable'}</code></article></div>
-  <div className="tm-insight"><ShieldCheck size={18}/><div><b>What changed over this interval?</b><p>The GOFF product estimates radar-coordinate offsets between these acquisitions. This pair alone does not show whether motion is speeding up, slowing down, seasonal, or long-term. A glacier time series needs multiple comparable observations over the same glacier and consistent processing.</p></div></div>
-  <div className="tm-next"><div><b>Build a longer story</b><p>Search the same region in NISAR Radar Lab and compare additional acquisition pairs. Keep track, viewing geometry, product type and quality in mind.</p></div><span>PAIR ≠ TREND</span></div></>}
- </div>
-}
 function Movement({data}){
  const m=data?.metadata||{};
  const values=useMemo(()=>{if(!data)return null;const get=k=>(data[k]||[]).flat().filter(v=>v!==null&&Number.isFinite(v));const mid=a=>{if(!a.length)return null;const b=[...a].sort((x,y)=>x-y);return b[Math.floor((b.length-1)/2)]};return{along:mid(get('alongTrack')),slant:mid(get('slantRange')),corr:mid(get('correlation')),snr:mid(get('snr')),count:get('alongTrack').length}},[data]);
