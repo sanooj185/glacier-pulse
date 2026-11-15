@@ -230,7 +230,7 @@ export default function GlacierExplorer({ api, data, onOpenObservation }) {
           <div className="gx-toolbar"><div className="gx-map-title"><b>Explore the map</b><span>{status?.loaded ? "Zoom in to reveal glacier boundaries" : "Map view · glacier inventory not connected"}</span></div>
             <div className="gx-search">
               <Search size={15} />
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={status?.loaded ? 'Search glacier name or RGI ID…' : 'Search needs the glacier inventory'} disabled={!status?.loaded} aria-label="Search glaciers" />
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={status?.loaded ? 'Search glacier name or RGI ID…' : 'Type a glacier name or RGI ID…'} aria-label="Search glaciers" />
               {(results.length > 0 || searchErr) && (
                 <div className="gx-results" role="listbox">
                   {results.map((r) => (
