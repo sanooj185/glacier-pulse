@@ -219,7 +219,7 @@ export default function GlacierExplorer({ api, data, onOpenObservation }) {
   // ---------------------------------------------------------------- search
   useEffect(() => {
     const term = query.trim();
-    if (term.length < 2 || !status?.loaded) {
+    if (term.length < 2) {
       setResults([]);
       setSearchErr('');
       setSearchLoading(false);
@@ -245,7 +245,7 @@ export default function GlacierExplorer({ api, data, onOpenObservation }) {
         .finally(() => { if (alive) setSearchLoading(false); });
     }, 180);
     return () => { alive = false; clearTimeout(t); controller.abort(); };
-  }, [api, query, status]);
+  }, [api, query]);
 
   const toggle = (k) => setLayers((l) => ({ ...l, [k]: !l[k] }));
   const p = selected?.properties;
