@@ -255,6 +255,37 @@ export default function GlacierExplorer({ api, data, onOpenObservation }) {
                 </div>
               )}
             </div>
+            <select
+              className="gx-glacier-select"
+              aria-label="Choose a popular Himalayan glacier"
+              defaultValue=""
+              onChange={async (e) => {
+                const name = e.target.value;
+                if (!name) return;
+                setQuery(name);
+                setSearchErr('');
+                try {
+                  const found = await getJson(`${api}/api/glaciers/search?q=${encodeURIComponent(name)}&limit=12`);
+                  const match = (found.results || []).find((item) => (item.name || '').toLowerCase() === name.toLowerCase()) || (found.results || [])[0];
+                  if (match) { setQuery(''); selectGlacier(match.id); }
+                  else setSearchErr(`“${name}” was not found in the installed RGI inventory.`);
+                } catch (error) { setSearchErr(error.message); }
+                e.target.value = '';
+              }}
+            >
+              <option value="">Popular Himalayan glaciers…</option>
+              <option>Samudra Tapu</option>
+              <option>Chhota Shigri</option>
+              <option>Bara Shigri</option>
+              <option>Gangotri</option>
+              <option>Milam</option>
+              <option>Pindari</option>
+              <option>Zemu</option>
+              <option>Drang-Drung</option>
+              <option>Satopanth</option>
+              <option>Dokriani</option>
+              <option>Chorabari</option>
+            </select>
             <div className="gx-switch" role="group" aria-label="Basemap">
               <button className={base === 'labels' ? 'on' : ''} onClick={() => setBase('labels')}>Map</button>
               <button className={base === 'satellite' ? 'on' : ''} onClick={() => setBase('satellite')}>Satellite</button>
