@@ -82,8 +82,22 @@ export default function GlacierExplorer({ api, data, onOpenObservation }) {
 
   // ---------------------------------------------------------------- status
   useEffect(() => {
-    getJson(`${api}/api/glaciers/status`).then((s) => { setStatus(s); statusRef.current = s; if (s.attribution) setAttribution(s.attribution); })
-      .catch((e) => { const s = { loaded: false, message: `Could not reach the API: ${e.message}` }; setStatus(s); statusRef.current = s; });
+    let cancelled = false, timer = null, tries = 0;
+    const check = () => {
+      getJson(`${api}/api/glaciers/status`).then((s) => {
+        if (cancelled) return;
+        setStatus(s); statusRef.current = s;
+        if (s.attribution) setAttribution(s.attribution);
+        // The API loads the inventory in the background after a deploy/sleep: keep checking, don't give up.
+        if (!s.loaded && s.loading && tries++ < 60) timer = setTimeout(check, 5000);
+      }).catch((e) => {
+        if (cancelled) return;
+        const s = { loaded: false, unreachable: true, message: `Could not reach the API: ${e.message}` };
+        setStatus(s); statusRef.current = s;
+      });
+    };
+    check();
+    return () => { cancelled = true; clearTimeout(timer); };
   }, [api]);
 
   // ---------------------------------------------------------------- map init
@@ -254,13 +268,20 @@ export default function GlacierExplorer({ api, data, onOpenObservation }) {
     <div className="gx"><div className="gx-intro"><div><span>GLACIER DISCOVERY</span><h2>Find a glacier. Explore its observations.</h2><p>Search by name or explore the map. Select a glacier to see which NISAR observations actually overlap it.</p></div><div className="gx-intro-mark"><Mountain size={27}/></div></div>
       {status && !status.loaded && (
         <div className="gx-banner"><AlertTriangle size={17} /><div>
-          <b>No glacier outlines are installed on this API yet.</b>
-          <p>{status.message || 'Install a Randolph Glacier Inventory extract to enable glacier boundaries, search and profiles.'} The map below shows the basemap only — no glacier locations are drawn or guessed.</p>
+          <b>{status.loading ? 'Glacier outlines are loading on the API…' : status.unreachable ? 'The API could not be reached.' : 'Glacier outlines are not available on this API.'}</b>
+          <p>{status.message || 'Install a Randolph Glacier Inventory extract to enable glacier boundaries, search and profiles.'}{status.loading ? ' This can take a minute after the service wakes up; the map will update by itself.' : ''} No glacier locations are drawn or guessed.</p>
+          {status.diagnostics && !status.loading && (
+            <p className="gx-fine">
+              {status.diagnostics.missingR2Settings?.length ? `Missing API settings: ${status.diagnostics.missingR2Settings.join(', ')}. ` : ''}
+              {status.load?.stage ? `Failed at: ${status.load.stage}. ` : ''}
+              {status.load?.errorType ? `Error type: ${status.load.errorType}.` : ''}
+            </p>
+          )}
         </div></div>
       )}
       <div className="gx-layout">
         <section className="gx-mapcard">
-          <div className="gx-toolbar"><div className="gx-map-title"><b>Explore the map</b><span>{status?.loaded ? "Zoom in to reveal glacier boundaries" : "Map view · glacier inventory not connected"}</span></div>
+          <div className="gx-toolbar"><div className="gx-map-title"><b>Explore the map</b><span>{status?.loaded ? "Zoom in to reveal glacier boundaries" : (status?.loading ? "Map view · loading glacier outlines…" : "Map view · glacier inventory not connected")}</span></div>
             <div className="gx-search">
               <Search size={15} />
               <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={status?.loaded ? 'Search glacier name or RGI ID…' : 'Type a glacier name or RGI ID…'} aria-label="Search glaciers" />
@@ -330,7 +351,7 @@ export default function GlacierExplorer({ api, data, onOpenObservation }) {
             </div>
           </div>
           <div className="gx-status">
-            {!status?.loaded ? 'Glacier boundary data not connected'
+            {!status?.loaded ? (status?.loading ? 'Loading glacier boundaries…' : 'Glacier boundary data not connected')
               : view.zoom < MIN_OUTLINE_ZOOM ? `Zoom in a little more to reveal glacier boundaries`
               : view.loading ? 'Loading outlines…'
               : view.error ? view.error

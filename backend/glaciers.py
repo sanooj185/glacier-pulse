@@ -19,10 +19,11 @@ from __future__ import annotations
 
 import gzip
 import json
-import tempfile
 import os
 import re
+import tempfile
 import threading
+import time
 import unicodedata
 from pathlib import Path
 from typing import Any, Iterable
@@ -54,6 +55,69 @@ def _normalize(text: str) -> str:
     text = unicodedata.normalize("NFKD", text or "")
     text = "".join(c for c in text if not unicodedata.combining(c))
     return re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()
+
+
+_FEATURES_KEY = re.compile(r'"features"\s*:\s*\[')
+
+
+def _stream_feature_collection(handle, chunk_size: int = 1 << 20, header_limit: int = 8 << 20):
+    """Return ``(metadata, feature_iterator)`` for a GeoJSON FeatureCollection without loading it whole.
+
+    Returns ``None`` when the text before the ``"features"`` array is not a recognisable header.
+    Features are decoded one by one with ``raw_decode`` and the consumed text is discarded.
+    """
+    buf = handle.read(chunk_size)
+    match = _FEATURES_KEY.search(buf)
+    while not match and buf and len(buf) < header_limit:
+        more = handle.read(chunk_size)
+        if not more:
+            break
+        buf += more
+        match = _FEATURES_KEY.search(buf)
+    if not match:
+        return None
+    header = buf[: match.start()].rstrip().rstrip(",")
+    try:
+        head = json.loads(header + "}")
+    except ValueError:
+        return None
+    if not isinstance(head, dict) or head.get("type") != "FeatureCollection":
+        return None
+    metadata = head.get("metadata") or {}
+
+    def iterate():
+        decoder = json.JSONDecoder()
+        text, pos, eof = buf[match.end():], 0, False
+
+        def refill():
+            nonlocal text, pos, eof
+            more = handle.read(chunk_size)
+            if not more:
+                eof = True
+                return
+            text, pos = text[pos:] + more, 0
+
+        while True:
+            while pos < len(text) and text[pos] in " \t\r\n,":
+                pos += 1
+            if pos >= len(text):
+                if eof:
+                    raise ValueError("Glacier inventory ended before its feature list was closed.")
+                refill()
+                continue
+            if text[pos] == "]":
+                return
+            try:
+                obj, end = decoder.raw_decode(text, pos)
+            except json.JSONDecodeError:
+                if eof:
+                    raise
+                refill()
+                continue
+            yield obj
+            pos = end
+
+    return metadata, iterate()
 
 
 class InventoryNotLoaded(RuntimeError):
@@ -88,9 +152,20 @@ class GlacierInventory:
 
     # ------------------------------------------------------------------ loading
     @classmethod
-    def from_file(cls, path: str | os.PathLike) -> "GlacierInventory":
+    def from_file(cls, path: str | os.PathLike, chunk_size: int = 1 << 20) -> "GlacierInventory":
+        """Load an inventory, streaming features one at a time so peak memory stays near the final size.
+
+        A plain ``json.load`` of a large GeoJSON builds every coordinate as a Python object first and
+        can exhaust a small (512 MB) instance. If the file layout is not the expected
+        ``{"type", "metadata", "features": [...]}`` we fall back to the whole-document parse.
+        """
         path = Path(path)
         opener = gzip.open if path.suffix.lower() == ".gz" else open
+        with opener(path, "rt", encoding="utf-8") as handle:
+            streamed = _stream_feature_collection(handle, chunk_size)
+            if streamed is not None:
+                metadata, features = streamed
+                return cls(features, metadata)
         with opener(path, "rt", encoding="utf-8") as handle:
             data = json.load(handle)
         if data.get("type") != "FeatureCollection":
@@ -211,6 +286,16 @@ class GlacierInventory:
 # ---------------------------------------------------------------------- process-wide cache
 _lock = threading.Lock()
 _cache: dict[str, Any] = {"key": None, "inventory": None}
+_state: dict[str, Any] = {"phase": "idle", "stage": None, "error": None, "errorType": None,
+                          "startedAt": None, "finishedAt": None, "failedAt": None}
+_warm: dict[str, Any] = {"thread": None}
+_warm_lock = threading.Lock()
+RETRY_COOLDOWN_SECONDS = 60
+R2_SETTINGS = ("R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET_NAME", "R2_OBJECT_KEY")
+
+
+def r2_requested() -> bool:
+    return bool(os.getenv("R2_ACCOUNT_ID") and os.getenv("R2_BUCKET_NAME") and os.getenv("R2_OBJECT_KEY"))
 
 
 def inventory_path() -> Path:
@@ -218,16 +303,15 @@ def inventory_path() -> Path:
     if configured:
         return Path(configured)
     # Render's filesystem is ephemeral; cache the archive in /tmp for this instance.
-    if os.getenv("R2_ACCOUNT_ID") and os.getenv("R2_BUCKET_NAME") and os.getenv("R2_OBJECT_KEY"):
+    if r2_requested():
         return Path(tempfile.gettempdir()) / Path(os.getenv("R2_OBJECT_KEY", "glaciers.geojson.gz")).name
     return DEFAULT_PATH
 
 
 def _download_inventory_from_r2(path: Path) -> None:
-    required = ("R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET_NAME", "R2_OBJECT_KEY")
-    missing = [key for key in required if not os.getenv(key)]
+    missing = [key for key in R2_SETTINGS if not os.getenv(key)]
     if missing:
-        raise InventoryNotLoaded("Configure the private Cloudflare R2 bucket credentials and object settings on the API service.")
+        raise InventoryNotLoaded("Private R2 storage is not fully configured on the API service. Missing settings: " + ", ".join(missing) + ".")
     try:
         import boto3
         from botocore.config import Config
@@ -256,26 +340,122 @@ def _download_inventory_from_r2(path: Path) -> None:
         ) from exc
 
 
+def _fail(stage: str | None, message: str, error_type: str) -> None:
+    _state.update(phase="failed", stage=stage, error=message, errorType=error_type, failedAt=time.time(), finishedAt=time.time())
+
+
 def get_inventory() -> GlacierInventory:
-    """Return the installed inventory, downloading it from private R2 on first use if configured."""
-    path = inventory_path()
-    if not path.is_file():
-        if os.getenv("R2_ACCOUNT_ID") and os.getenv("R2_BUCKET_NAME") and os.getenv("R2_OBJECT_KEY"):
-            _download_inventory_from_r2(path)
-        else:
-            raise InventoryNotLoaded("No glacier outline inventory is installed. Configure private Cloudflare R2 storage or set GLACIER_DATA_PATH.")
-    key = (str(path), path.stat().st_mtime_ns, path.stat().st_size)
+    """Return the installed inventory, downloading it from private R2 on first use if configured.
+
+    Download and parse are serialised under one lock. Every outcome is recorded in ``_state`` so the
+    API can say *why* the inventory is unavailable. A failed download or parse is not retried for
+    ``RETRY_COOLDOWN_SECONDS`` so a bad file cannot trigger a re-download on every request.
+    """
     with _lock:
-        if _cache["key"] != key:
-            _cache["inventory"] = GlacierInventory.from_file(path)
-            _cache["key"] = key
-        return _cache["inventory"]
+        path = inventory_path()
+        if (_state["phase"] == "failed" and _state["stage"] in ("download", "parse")
+                and time.time() - (_state["failedAt"] or 0) < RETRY_COOLDOWN_SECONDS):
+            raise InventoryNotLoaded(_state["error"])
+        stage = "config"
+        try:
+            if not path.is_file():
+                if not r2_requested() and not any(os.getenv(k) for k in R2_SETTINGS):
+                    raise InventoryNotLoaded("No glacier outline inventory is installed. Configure private Cloudflare R2 storage or set GLACIER_DATA_PATH.")
+                stage = "download"
+                _state.update(phase="loading", stage="download", startedAt=_state["startedAt"] or time.time(), error=None, errorType=None)
+                _download_inventory_from_r2(path)
+            stat = path.stat()
+            key = (str(path), stat.st_mtime_ns, stat.st_size)
+            if _cache["key"] != key:
+                stage = "parse"
+                _state.update(phase="loading", stage="parse", startedAt=_state["startedAt"] or time.time(), error=None, errorType=None)
+                inventory = GlacierInventory.from_file(path)
+                _cache["inventory"], _cache["key"] = inventory, key
+            _state.update(phase="ready", stage="ready", error=None, errorType=None, finishedAt=time.time(),
+                          fileMB=round(stat.st_size / 1e6, 1), glacierCount=len(_cache["inventory"]))
+            return _cache["inventory"]
+        except InventoryNotLoaded as exc:
+            _fail(stage, str(exc), type(exc).__name__)
+            raise
+        except MemoryError as exc:
+            message = ("The API ran out of memory while reading the glacier inventory. Build a smaller inventory "
+                       "(raise --min-area-km2 or narrow --bbox) or use a larger instance.")
+            _fail("parse", message, "MemoryError")
+            raise InventoryNotLoaded(message) from exc
+        except Exception as exc:
+            message = (f"The glacier inventory file could not be read ({type(exc).__name__}). "
+                       "Rebuild it with scripts/build_glacier_inventory.py and upload it again.")
+            _fail(stage, message, type(exc).__name__)
+            raise InventoryNotLoaded(message) from exc
+
+
+def warm_up(wait: float = 0.0) -> None:
+    """Start loading the inventory in a background thread (no-op if loading or loaded).
+
+    ``wait`` blocks for at most that many seconds, so small local files can still be ready on the
+    first request while a large download/parse never blocks the API.
+    """
+    with _warm_lock:
+        thread = _warm["thread"]
+        if thread is None or not thread.is_alive():
+            if _state["phase"] not in ("ready", "failed"):
+                _state.update(phase="loading", stage=_state["stage"] or "queued", startedAt=time.time(), error=None, errorType=None)
+
+                def run():
+                    try:
+                        get_inventory()
+                    except Exception:
+                        pass  # the outcome is recorded in _state
+
+                thread = threading.Thread(target=run, name="glacier-inventory-warmup", daemon=True)
+                _warm["thread"] = thread
+                thread.start()
+    thread = _warm["thread"]
+    if wait > 0 and thread is not None:
+        thread.join(timeout=wait)
+
+
+def is_loading() -> bool:
+    return _state["phase"] == "loading"
+
+
+def load_state() -> dict[str, Any]:
+    started = _state.get("startedAt")
+    return {"phase": _state["phase"], "stage": _state["stage"], "error": _state["error"], "errorType": _state["errorType"],
+            "elapsedSeconds": round(time.time() - started, 1) if started and _state["phase"] == "loading" else None}
+
+
+def diagnostics() -> dict[str, Any]:
+    """Safe-to-share facts about why the inventory may be unavailable. Never includes setting values."""
+    try:
+        import boto3  # noqa: F401
+        boto3_ok = True
+    except ImportError:
+        boto3_ok = False
+    path = inventory_path()
+    local = {"exists": path.is_file(), "sizeMB": round(path.stat().st_size / 1e6, 1) if path.is_file() else None}
+    try:
+        import resource
+        peak = round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 1)  # KB on Linux
+    except Exception:
+        peak = None
+    return {"phase": _state["phase"], "stage": _state["stage"], "errorType": _state["errorType"],
+            "r2SettingsPresent": {k: bool(os.getenv(k)) for k in R2_SETTINGS},
+            "missingR2Settings": [k for k in R2_SETTINGS if not os.getenv(k)],
+            "dataPathOverride": bool(os.getenv("GLACIER_DATA_PATH")),
+            "boto3Installed": boto3_ok, "localFile": local, "peakMemoryMB": peak}
 
 
 def reset_cache() -> None:
     with _lock:
         _cache["key"] = None
         _cache["inventory"] = None
+        _state.update(phase="idle", stage=None, error=None, errorType=None, startedAt=None, finishedAt=None, failedAt=None)
+    with _warm_lock:
+        thread = _warm["thread"]
+        _warm["thread"] = None
+    if thread is not None and thread.is_alive():
+        thread.join(timeout=5)
 
 
 def footprint_from_geojson(geometry: dict[str, Any]) -> BaseGeometry:

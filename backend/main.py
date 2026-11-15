@@ -128,6 +128,10 @@ def asf_search_goff(west: float, south: float, east: float, north: float, start:
 # Glacier inventory (real outlines only; see glaciers.py and the build script)
 # ---------------------------------------------------------------------------
 def _inventory():
+    if glaciers.is_loading():
+        glaciers.warm_up(wait=2)
+        if glaciers.is_loading():
+            raise HTTPException(503, "The glacier inventory is still loading on the API (first start after a deploy or sleep). Try again shortly.")
     try:
         return glaciers.get_inventory()
     except glaciers.InventoryNotLoaded as exc:
@@ -135,16 +139,31 @@ def _inventory():
     except Exception as exc:
         raise HTTPException(500, f"Glacier inventory could not be read: {type(exc).__name__}")
 
+@app.on_event("startup")
+def _warm_glacier_inventory():
+    # Download/parse in the background so the first user request is never blocked.
+    glaciers.warm_up()
+
 class FootprintRequest(BaseModel):
     geometry: dict
     limit: int = 200
 
 @app.get("/api/glaciers/status")
 def glacier_status():
-    try:
-        return glaciers.get_inventory().status()
-    except glaciers.InventoryNotLoaded as exc:
-        return {"loaded": False, "glacierCount": 0, "message": str(exc)}
+    """Never blocks on a large download/parse: reports loaded / loading / failed with safe diagnostics."""
+    glaciers.warm_up(wait=3)
+    state = glaciers.load_state()
+    if state["phase"] == "ready":
+        try:
+            return {**glaciers.get_inventory().status(), "loading": False}
+        except Exception:
+            state = glaciers.load_state()
+    if state["phase"] in ("idle", "loading"):
+        return {"loaded": False, "loading": state["phase"] == "loading", "glacierCount": 0,
+                "message": "The glacier inventory is still loading on the API." if state["phase"] == "loading" else "No glacier outline inventory is installed on this API.",
+                "load": state, "diagnostics": glaciers.diagnostics()}
+    return {"loaded": False, "loading": False, "glacierCount": 0, "message": state["error"],
+            "load": state, "diagnostics": glaciers.diagnostics()}
 
 @app.get("/api/glaciers/search")
 def glacier_search(q: str, limit: int = 20):
