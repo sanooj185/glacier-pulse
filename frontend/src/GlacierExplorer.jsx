@@ -300,7 +300,7 @@ export default function GlacierExplorer({ api, data, onOpenObservation }) {
                 {!obs.loading && !obs.error && obs.list.length === 0 && <p className="gx-fine">No NISAR observations found over this glacier{obs.dropped ? ` (${obs.dropped} nearby products did not overlap it)` : ''}. Try another date range or check back as more observations become available.</p>}
                 <div className="gx-obslist">
                   {obs.list.map((o) => (
-                    <button key={o.granuleId} className={activeObs === o.granuleId ? 'on' : ''} onClick={() => { setActiveObs(o.granuleId); onOpenObservation?.(o.granuleId, o.dataMaturity); }}>
+                    <button key={o.granuleId} className={activeObs === o.granuleId ? 'on' : ''} onClick={() => { if (!o.granuleId) return; setActiveObs(o.granuleId); onOpenObservation?.(o.granuleId, o.dataMaturity); }}>
                       <span><b>{fmtDate(o.startTime)}</b> <CoverageBadge coverage={o.coverage} /></span>
                       <small>{[o.dataMaturity, o.flightDirection && `Orbit ${o.flightDirection}`, o.pathNumber && `Path ${o.pathNumber}`].filter(Boolean).join(' · ')}</small>
                       {o.coverage?.nearEdge && <small className="gx-warn">Within {5} km of the footprint edge — coverage is approximate</small>}
