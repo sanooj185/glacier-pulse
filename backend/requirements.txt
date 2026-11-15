@@ -7,3 +7,4 @@ python-multipart==0.0.20
 asf_search
 earthaccess>=0.15,<1
 shapely>=2.0,<3
+boto3>=1.35,<2
