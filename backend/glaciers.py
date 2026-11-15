@@ -168,6 +168,45 @@ class GlacierInventory:
             features.append({"type": "Feature", "id": rec["props"]["id"], "properties": self._summary(idx), "geometry": mapping(geom)})
         return {"type": "FeatureCollection", "features": features, "truncated": len(candidates) > limit, "totalInView": len(candidates)}
 
+    # ------------------------------------------------------------------ raster sample masking
+    def samples_inside(self, x: np.ndarray, y: np.ndarray, lon: np.ndarray, lat: np.ndarray, epsg: int) -> tuple[np.ndarray, int]:
+        """True where a raster sample point lies inside a glacier outline.
+
+        ``x``/``y`` are the sample coordinates in the raster's own projected CRS (``epsg``) and
+        ``lon``/``lat`` the same points in WGS84 (used only to select candidate outlines).
+        Outlines are projected into the raster CRS and tested there, so the comparison happens in
+        the geometry the radar grid was actually measured in. A sample counts only if its own
+        centre is inside an outline; nothing is buffered or guessed. Returns the boolean mask and
+        the number of candidate outlines considered.
+        """
+        x, y = np.asarray(x, dtype=float), np.asarray(y, dtype=float)
+        mask = np.zeros(x.shape, dtype=bool)
+        if self._tree is None:
+            return mask, 0
+        finite = np.isfinite(lon) & np.isfinite(lat) & np.isfinite(x) & np.isfinite(y)
+        if not finite.any():
+            return mask, 0
+        pad = 0.01
+        window = box(float(np.min(lon[finite])) - pad, float(np.min(lat[finite])) - pad,
+                     float(np.max(lon[finite])) + pad, float(np.max(lat[finite])) + pad)
+        candidates = [int(i) for i in self._tree.query(window, predicate="intersects")]
+        if not candidates:
+            return mask, 0
+        to_raster = Transformer.from_crs("EPSG:4326", f"EPSG:{int(epsg)}", always_xy=True)
+
+        def apply(coords):
+            px, py = to_raster.transform(coords[:, 0], coords[:, 1])
+            return np.column_stack([px, py])
+
+        projected = [shapely.transform(self._geoms[i], apply) for i in candidates]
+        tree = STRtree(projected)
+        points = shapely.points(x[finite], y[finite])
+        hit_points, _ = tree.query(points, predicate="intersects")
+        inside = np.zeros(int(finite.sum()), dtype=bool)
+        inside[np.unique(hit_points)] = True
+        mask[finite] = inside
+        return mask, len(candidates)
+
     # ------------------------------------------------------------------ footprint coverage
     @staticmethod
     def coverage(glacier: BaseGeometry, footprint: BaseGeometry) -> dict[str, Any]:

@@ -70,3 +70,19 @@ high-quality offset pixels exist over the glacier.
 
 Backend tests: `cd backend && pip install pytest httpx && python -m pytest tests`. The tests use synthetic
 squares as geometry fixtures to verify the spatial logic; they are not glacier data.
+
+### Glacier-only raster view (Radar Lab)
+
+`/api/goff/preview` and `/api/asf/stream-preview` now return a `glacierMask` aligned with the preview grid, plus
+`metadata.glacierMask` describing the rule. A sample is marked only if its **own centre lies inside** a Randolph
+Glacier Inventory outline (outlines are projected into the granule's CRS and tested there; nothing is buffered).
+The Radar Lab shows only those samples by default and has a switch to show every finite sample. Without an installed
+inventory the preview is unchanged and the UI says the filter is unavailable.
+
+The raster is also drawn sample by sample at each sample's own georeferenced position instead of being stretched
+over a lat/lon bounding box. For a UTM granule this removes the grid-convergence rotation error (about 1.4° for a
+frame ~2.4° from the zone's central meridian, i.e. several hundred metres at the frame corners).
+
+Limits: the preview is decimated from 80 m pixels, so each drawn block is one sampled pixel at preview spacing.
+Inventory outlines are not today's glacier extent. Masking removes water and bare ground from view; it does not make
+the remaining offsets quality-controlled or convert them into glacier velocity.

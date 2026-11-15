@@ -473,3 +473,11 @@ header{height:62px;padding:0 28px;background:#031326ed;border-bottom:1px solid #
 .content footer{border-color:#123b54;color:#7695a9}
 @media(max-width:1050px){header{padding:0 16px}.topnav{gap:12px}.topnav button{font-size:11px}.global-search{width:210px;min-width:160px}}
 @media(max-width:760px){header{height:auto;min-height:58px;align-items:flex-start;flex-direction:column;padding:9px 14px;gap:8px}.topnav{width:100%;height:35px}.headright{width:100%;justify-content:space-between}.global-search{width:calc(100% - 48px)}.modulegrid{grid-template-columns:1fr}.heroimage{height:330px}.heroimageoverlay{padding:24px}}
+
+/* ===== Glacier-only raster filter ===== */
+.glacier-filter{display:grid;gap:6px;padding:12px 16px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:rgba(11,26,35,.6)}
+.glacier-filter label{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;cursor:pointer}
+.glacier-filter input{accent-color:#63d5bf;width:16px;height:16px}
+.glacier-filter b{font:500 11px 'DM Mono',monospace;color:#8ce4d0}
+.glacier-filter small{font-size:11.5px;line-height:1.55;color:var(--muted)}
+.glacier-filter .glacier-filter-warn{color:#f0c35c}

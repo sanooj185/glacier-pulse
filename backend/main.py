@@ -23,6 +23,25 @@ def attr_text(f, path, key, default=""):
     except Exception:
         return default
 
+def glacier_sample_mask(xx, yy, lon, lat, epsg):
+    """Mask of preview samples whose centre lies inside a real glacier outline, or an explanation of why not."""
+    try:
+        inventory = glaciers.get_inventory()
+    except glaciers.InventoryNotLoaded as exc:
+        return None, {"available": False, "reason": str(exc)}
+    except Exception as exc:
+        return None, {"available": False, "reason": f"Glacier inventory could not be read ({type(exc).__name__})."}
+    try:
+        mask, candidates = inventory.samples_inside(xx, yy, lon, lat, epsg)
+    except Exception as exc:
+        return None, {"available": False, "reason": f"Glacier masking failed ({type(exc).__name__})."}
+    attribution = inventory.attribution()
+    return mask, {"available": True, "candidateGlaciers": int(candidates),
+                  "rule": "A preview sample is kept only if its centre lies inside an inventory glacier outline. Outlines are not buffered.",
+                  "source": attribution.get("source"), "url": attribution.get("url"),
+                  "outlineCaveat": "Outlines are inventory polygons mapped on the dates in the inventory, not today's glacier extent."}
+
+
 def make_preview(f, filename, layer="layer1", max_dim=420):
     if layer not in ("layer1", "layer2", "layer3") or not 64 <= max_dim <= 600:
         raise HTTPException(400, "Invalid layer or preview dimensions.")
@@ -62,6 +81,11 @@ def make_preview(f, filename, layer="layer1", max_dim=420):
     valid = np.isfinite(along) & np.isfinite(slant) & np.isfinite(corr)
     if mask_valid is not None:
         valid &= mask_valid
+    glacier_mask, glacier_info = glacier_sample_mask(xx, yy, lon, lat, epsg)
+    if glacier_mask is not None:
+        glacier_info["insidePixels"] = int(glacier_mask.sum())
+        glacier_info["insideValidPixels"] = int((glacier_mask & valid).sum())
+        glacier_info["insideValidPercentOfInside"] = round(100 * glacier_info["insideValidPixels"] / glacier_info["insidePixels"], 2) if glacier_mask.any() else None
     def clean(a):
         z = np.asarray(a, dtype=float).copy()
         z[~valid] = np.nan
@@ -79,10 +103,12 @@ def make_preview(f, filename, layer="layer1", max_dim=420):
         "maskSource": "legacy validDataMask (value 3)" if mask_valid is not None else ("standard pixelOffsets/mask present; not decoded in this preview" if mask_path in f else "no mask dataset found"),
         "previewValidPercent": round(100 * float(valid.sum()) / valid.size, 2),
         "offsetUnits": attr_text(f, lp+"alongTrackOffset", "units", "m"),
-        "accessMethod": "Earthdata-authenticated HTTPS streaming"
+        "accessMethod": "Earthdata-authenticated HTTPS streaming",
+        "glacierMask": glacier_info,
     }
     return {"metadata": metadata, "longitude": lon.tolist(), "latitude": lat.tolist(),
-            "alongTrack": clean(along), "slantRange": clean(slant), "correlation": clean(corr), "snr": clean(snr)}
+            "alongTrack": clean(along), "slantRange": clean(slant), "correlation": clean(corr), "snr": clean(snr),
+            "glacierMask": None if glacier_mask is None else glacier_mask.astype(np.uint8).tolist()}
 
 @app.get("/api/health")
 def health():
