@@ -16,16 +16,17 @@ const fmtDate = (s) => (s ? String(s).slice(0, 10) : 'date unavailable');
 
 async function getJson(url, options) {
   let res, lastError;
-  for (let attempt = 0; attempt < 3; attempt++) {
+  const delays = [2000, 4000, 8000, 12000, 15000, 20000];
+  for (let attempt = 0; attempt <= delays.length; attempt++) {
     try {
       res = await fetch(url, options);
-      if (![502, 503, 504].includes(res.status) || attempt === 2) break;
+      if (![502, 503, 504].includes(res.status) || attempt === delays.length) break;
       lastError = new Error(`API temporarily unavailable (${res.status})`);
     } catch (error) {
       lastError = error;
-      if (attempt === 2) throw error;
+      if (attempt === delays.length) throw new Error('The Glacier Pulse API is not responding. The free Render service may still be waking up; please wait a minute and retry.');
     }
-    await new Promise((resolve) => setTimeout(resolve, 1200 * (2 ** attempt)));
+    await new Promise((resolve) => setTimeout(resolve, delays[attempt]));
   }
   if (!res) throw lastError || new Error('API unavailable');
   let body = null;
