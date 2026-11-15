@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import tempfile
 import os
 import re
 import threading
@@ -213,18 +214,56 @@ _cache: dict[str, Any] = {"key": None, "inventory": None}
 
 
 def inventory_path() -> Path:
-    return Path(os.getenv("GLACIER_DATA_PATH") or DEFAULT_PATH)
+    configured = os.getenv("GLACIER_DATA_PATH")
+    if configured:
+        return Path(configured)
+    # Render's filesystem is ephemeral; cache the archive in /tmp for this instance.
+    if os.getenv("R2_ACCOUNT_ID") and os.getenv("R2_BUCKET_NAME") and os.getenv("R2_OBJECT_KEY"):
+        return Path(tempfile.gettempdir()) / Path(os.getenv("R2_OBJECT_KEY", "glaciers.geojson.gz")).name
+    return DEFAULT_PATH
+
+
+def _download_inventory_from_r2(path: Path) -> None:
+    required = ("R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET_NAME", "R2_OBJECT_KEY")
+    missing = [key for key in required if not os.getenv(key)]
+    if missing:
+        raise InventoryNotLoaded("Configure the private Cloudflare R2 bucket credentials and object settings on the API service.")
+    try:
+        import boto3
+        from botocore.config import Config
+    except ImportError as exc:
+        raise InventoryNotLoaded("R2 storage support is unavailable; redeploy the API dependencies.") from exc
+    endpoint = f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com"
+    client = boto3.client(
+        "s3", endpoint_url=endpoint,
+        aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"],
+        aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
+        region_name="auto", config=Config(signature_version="s3v4"),
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + ".download")
+    try:
+        client.download_file(os.environ["R2_BUCKET_NAME"], os.environ["R2_OBJECT_KEY"], str(temporary))
+        temporary.replace(path)
+    except Exception as exc:
+        try:
+            temporary.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise InventoryNotLoaded(
+            f"Could not retrieve the glacier inventory from private R2 storage ({type(exc).__name__}). "
+            "Check the bucket name, object key, and read-only API token."
+        ) from exc
 
 
 def get_inventory() -> GlacierInventory:
-    """Return the installed inventory or raise :class:`InventoryNotLoaded`."""
+    """Return the installed inventory, downloading it from private R2 on first use if configured."""
     path = inventory_path()
     if not path.is_file():
-        raise InventoryNotLoaded(
-            "No glacier outline inventory is installed on this API. Build one from the Randolph Glacier "
-            "Inventory with scripts/build_glacier_inventory.py and deploy it as backend/data/glaciers.geojson "
-            "(or set GLACIER_DATA_PATH)."
-        )
+        if os.getenv("R2_ACCOUNT_ID") and os.getenv("R2_BUCKET_NAME") and os.getenv("R2_OBJECT_KEY"):
+            _download_inventory_from_r2(path)
+        else:
+            raise InventoryNotLoaded("No glacier outline inventory is installed. Configure private Cloudflare R2 storage or set GLACIER_DATA_PATH.")
     key = (str(path), path.stat().st_mtime_ns, path.stat().st_size)
     with _lock:
         if _cache["key"] != key:
